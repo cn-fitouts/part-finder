@@ -362,7 +362,7 @@ const TEX_MAX = PHONE ? 1024 : 2048;
 // coplanar faces 2 mm apart instead.)
 // (Desktops keep normal depth: enough precision, and the ambient occlusion pass needs it.)
 const renderer = new THREE.WebGLRenderer({antialias:true, logarithmicDepthBuffer:PHONE, precision:'highp', powerPreference: PHONE ? 'low-power' : 'high-performance'});
-renderer.setPixelRatio(Math.min(devicePixelRatio, PHONE ? 1.5 : 2));
+renderer.setPixelRatio(Math.min(devicePixelRatio, PHONE ? 1.25 : 1.5));   // (2x on a high-res screen: 4x the pixels for little gain)
 stage.prepend(renderer.domElement);
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(35, 1, 10, 50000);
@@ -1344,8 +1344,8 @@ let sectionOn = false;
 { // raycasts skip what a section has cut away
   const io = THREE.Raycaster.prototype.intersectObjects, i1 = THREE.Raycaster.prototype.intersectObject;
   const keep = h => !(sectionOn && h.object.material && h.object.material.clippingPlanes === CLIP && clipped(h.point));
-  THREE.Raycaster.prototype.intersectObjects = function(o, r, out){ return io.call(this, o, r, out).filter(keep); };
-  THREE.Raycaster.prototype.intersectObject = function(o, r, out){ return i1.call(this, o, r, out).filter(keep); };
+  THREE.Raycaster.prototype.intersectObjects = function(o, r, out){ this.layers.enableAll(); return io.call(this, o, r, out).filter(keep); };   // (merged boards' originals sit on a hidden layer)
+  THREE.Raycaster.prototype.intersectObject = function(o, r, out){ this.layers.enableAll(); return i1.call(this, o, r, out).filter(keep); };
 }
 const secLines = new THREE.Group(); scene.add(secLines);
 // solid cut faces: where a cut goes through a board, a flat face fills the board's cross-section (the board's box
@@ -1661,7 +1661,7 @@ if (!PHONE && THREE.SSAOPass && THREE.SimplexNoise){
     ao.copyMaterial.blendSrc = THREE.DstColorFactor; ao.copyMaterial.blendDst = THREE.ZeroFactor;   // multiply over the screen
   } catch (e){ ao = null; }
 }
-function aoSize(){ if (ao){ const w = renderer.domElement.width, h = renderer.domElement.height; const k = renderer.getPixelRatio() >= 1.5 ? 2 : 1; ao.setSize(Math.max(2, Math.round(w / k)), Math.max(2, Math.round(h / k))); } }
+function aoSize(){ if (ao){ const w = renderer.domElement.width, h = renderer.domElement.height; const k = 2;   /* (half-size soft shading: blurred anyway, and a quarter of the work) */ ao.setSize(Math.max(2, Math.round(w / k)), Math.max(2, Math.round(h / k))); } }
 function drawAO(){
   const u = ao.ssaoMaterial.uniforms, far = camera.position.distanceTo(controls.target);
   u.aoStrength.value = THREE.MathUtils.clamp((9000 - far) / 5000, 0, 1) * 0.7;   // (toned down)
@@ -1678,6 +1678,126 @@ function drawAO(){
   ao.renderPass(renderer, ao.copyMaterial, null);
   return true;
 }
+// ---- speed: draw-call batching ----
+// A room is ~1000 separate boards and their outlines, and the graphics chip pays a fixed cost for every one of
+// them on every frame (twice with the soft shading). Once the view settles, everything that looks the same and
+// moves together (same finish, same door/drawer, same highlight) is merged into one mesh, so a frame is a few
+// dozen draws instead of ~2000. The originals stay in the scene, out of sight (layer 5), for tapping, measuring
+// and section caps. Any change to a board (hide, finish, highlight, explode) splits the batches straight away and
+// they are rebuilt once things are still again.
+const BATCH_LAYER = 5, NOBATCH = /[?&]nobatch\b/.test(location.search);
+let batches = [], batchMembers = [], batchWanted = 0, batchStable = 0, batchLastSig = '';
+const batchObjs = () => parts.concat(hardware).filter(x => !(x.p && x.p.k === 'wall'));
+function meshKey(m){
+  const t = m.material;
+  if (!m.visible || !t || !t.visible || t.opacity < 0.999 || !t.depthWrite || t.wireframe || !m.parent) return null;
+  if (sel && sel.meshes.indexOf(m) >= 0) return null;          // (the picked part stays on its own: its glow changes)
+  return 'm' + m.parent.id + '|' + (t.map ? t.map.uuid : '-') + '|' + t.color.getHex() + '|' + t.emissive.getHex() + '|' + t.emissiveIntensity
+    + '|' + t.roughness + '|' + t.metalness + '|' + t.envMapIntensity + '|' + t.side + '|' + m.renderOrder + '|' + m.castShadow + '|' + m.receiveShadow
+    + '|' + !!m.userData.noAO + '|' + !!m.geometry.attributes.uv + '|' + t.polygonOffset;
+}
+function edgeKey(e){
+  const t = e.material;
+  if (!e.visible || !t || !t.visible || !e.parent) return null;
+  return 'e' + e.parent.id + '|' + t.color.getHex() + '|' + t.opacity + '|' + t.depthTest + '|' + t.transparent + '|' + e.renderOrder;
+}
+function unbatch(){
+  if (!batches.length) return;
+  for (const b of batches){ if (b.parent) b.parent.remove(b); b.geometry.dispose(); }
+  for (const r of batchMembers) r.ob.layers.set(0);
+  batches = []; batchMembers = []; forceFrame = true;   // (same boards, so shadows and caps stay as they are)
+}
+function mergeMeshes(list, lines){
+  let nv = 0, ni = 0;
+  for (const m of list){ const g = m.geometry; nv += g.attributes.position.count; ni += g.index ? g.index.count : g.attributes.position.count; }
+  const P = new Float32Array(nv * 3), N = lines ? null : new Float32Array(nv * 3);
+  const hasUV = !lines && !!list[0].geometry.attributes.uv, U = hasUV ? new Float32Array(nv * 2) : null;
+  const I = nv > 65535 ? new Uint32Array(ni) : new Uint16Array(ni);
+  const v = new THREE.Vector3(), nm = new THREE.Matrix3();
+  let vo = 0, io = 0;
+  for (const m of list){
+    m.updateMatrix();
+    const g = m.geometry, pa = g.attributes.position, na = g.attributes.normal, ua = g.attributes.uv, mx = m.matrix;
+    const ident = mx.equals(IDENT);
+    if (!lines) nm.getNormalMatrix(mx);
+    for (let k = 0; k < pa.count; k++){
+      v.fromBufferAttribute(pa, k); if (!ident) v.applyMatrix4(mx); P[(vo + k) * 3] = v.x; P[(vo + k) * 3 + 1] = v.y; P[(vo + k) * 3 + 2] = v.z;
+      if (N && na){ v.fromBufferAttribute(na, k); if (!ident) v.applyMatrix3(nm).normalize(); N[(vo + k) * 3] = v.x; N[(vo + k) * 3 + 1] = v.y; N[(vo + k) * 3 + 2] = v.z; }
+      if (U && ua){ U[(vo + k) * 2] = ua.getX(k); U[(vo + k) * 2 + 1] = ua.getY(k); }
+    }
+    if (g.index){ const ia = g.index.array; for (let k = 0; k < ia.length; k++) I[io + k] = ia[k] + vo; io += ia.length; }
+    else { for (let k = 0; k < pa.count; k++) I[io + k] = vo + k; io += pa.count; }
+    vo += pa.count;
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(P, 3));
+  if (N) g.setAttribute('normal', new THREE.BufferAttribute(N, 3));
+  if (U) g.setAttribute('uv', new THREE.BufferAttribute(U, 2));
+  g.setIndex(new THREE.BufferAttribute(I, 1)); g.computeBoundingSphere(); g.computeBoundingBox();
+  return g;
+}
+const IDENT = new THREE.Matrix4();
+let batchMs = 0;
+function rebuildBatches(){
+  const t0 = performance.now();
+  unbatch();
+  if (NOBATCH) return;
+  const groups = new Map();
+  for (const x of batchObjs()){
+    for (const m of x.meshes){ const k = meshKey(m); if (k){ if (!groups.has(k)) groups.set(k, []); groups.get(k).push(m); } }
+    for (const e of x.edges){ const k = edgeKey(e); if (k){ if (!groups.has(k)) groups.set(k, []); groups.get(k).push(e); } }
+  }
+  for (const [k, list] of groups){
+    if (list.length < 2) continue;                // one board on its own: nothing to gain
+    const lines = k[0] === 'e', first = list[0];
+    // very big groups are split so a phone never needs one huge buffer
+    for (let s = 0; s < list.length; s += 400){
+      const chunk = list.slice(s, s + 400);
+      if (chunk.length < 2) continue;
+      const g = mergeMeshes(chunk, lines);
+      const b = lines ? new THREE.LineSegments(g, first.material) : new THREE.Mesh(g, first.material);
+      b.renderOrder = first.renderOrder; b.castShadow = first.castShadow; b.receiveShadow = first.receiveShadow;
+      b.userData.noAO = first.userData.noAO; b.userData.batch = true; b.raycast = () => {};
+      b.matrixAutoUpdate = false; b.updateMatrix();
+      first.parent.add(b); batches.push(b);
+      for (const ob of chunk){ ob.layers.set(BATCH_LAYER); batchMembers.push(snap(ob)); }
+    }
+  }
+  forceFrame = true; batchMs = performance.now() - t0;
+}
+// anything about a batched board changed since the merge: split now, merge again once it's still
+// (plain number checks: this runs before every drawn frame, so no strings)
+function snap(ob){
+  const t = ob.material, r = {ob, t, p: ob.parent, x: ob.position.x, y: ob.position.y, z: ob.position.z, map: t.map, ro: ob.renderOrder,
+    cr: t.color.r, cg: t.color.g, cb: t.color.b, op: t.opacity, mv: t.visible, ov: ob.visible, cs: ob.castShadow};
+  if (t.emissive){ r.er = t.emissive.r; r.eg = t.emissive.g; r.eb = t.emissive.b; r.ei = t.emissiveIntensity; r.ro2 = t.roughness; r.me = t.metalness; r.en = t.envMapIntensity; r.dw = t.depthWrite; }
+  return r;
+}
+function batchValid(){
+  for (const r of batchMembers){
+    const ob = r.ob, t = ob.material;
+    if (t !== r.t || ob.parent !== r.p || ob.visible !== r.ov || t.visible !== r.mv || t.opacity !== r.op || t.map !== r.map || ob.renderOrder !== r.ro || ob.castShadow !== r.cs
+      || ob.position.x !== r.x || ob.position.y !== r.y || ob.position.z !== r.z || t.color.r !== r.cr || t.color.g !== r.cg || t.color.b !== r.cb) return false;
+    if (t.emissive && (t.emissive.r !== r.er || t.emissive.g !== r.eg || t.emissive.b !== r.eb || t.emissiveIntensity !== r.ei
+      || t.roughness !== r.ro2 || t.metalness !== r.me || t.envMapIntensity !== r.en || t.depthWrite !== r.dw)) return false;
+  }
+  return true;
+}
+function batchSig(){
+  let n = 0, h = 0;
+  for (const x of batchObjs()){ if (x === sel) continue; for (const m of x.meshes){ if (m.visible){ n++; h = (h * 31 + m.material.color.getHex() + m.material.emissive.getHex() + (m.material.map ? m.material.map.id : 0) + Math.round(m.material.opacity * 100) + Math.round(m.position.x + m.position.y + m.position.z)) | 0; } } }
+  return n + ':' + h + ':' + ex + ':' + exTarget;
+}
+function batchCheck(){             // (before each drawn frame)
+  if (batches.length && (ex !== 0 || exTarget !== 0 || !batchValid())){ unbatch(); batchLastSig = ''; }
+}
+function batchStep(t){              // (every tick while not merged)
+  if (NOBATCH || batches.length || ex !== 0 || exTarget !== 0) return;           // exploded: boards move one by one
+  const s = batchSig();
+  if (s !== batchLastSig){ batchLastSig = s; batchStable = t; return; }
+  if (t - batchStable > 350) rebuildBatches();
+}
+window.__batchInfo = () => { const t0 = performance.now(), ok = batchValid(); return {batches: batches.length, members: batchMembers.length, buildMs: Math.round(batchMs), checkMs: +(performance.now() - t0).toFixed(2), ok}; };
 // Moving (orbit, doors, explode): plain frames, fast. Once it settles: one frame with the ambient occlusion.
 // Nothing changing: nothing drawn (the last picture stays up).
 // The soft shading (ambient occlusion) is either on for every frame or off - never switched on and off as the
@@ -1699,7 +1819,7 @@ function render(t){
     if (gaps.length >= 30 && gaps.reduce((a, b) => a + b, 0) / gaps.length > 34){ aoOn = false; console.log('soft shading off: too slow here'); }
   }
   lastT = t;
-  drawCaps(); renderer.render(scene, camera);
+  batchCheck(); drawCaps(); renderer.render(scene, camera);
   if (ao && aoOn) drawAO();
   drawLoupe();
 }
@@ -1711,7 +1831,7 @@ resize(); hintText(); fromHash();
   if (sel && !still) forceFrame = true;           // the scanned part's pulse keeps drawing
   moveStep(); controls.update(); wallStep();
   if (shadowDirty || ex !== exTarget || movers.some(m => m.moved)){ renderer.shadowMap.needsUpdate = true; shadowDirty = false; }
-  render(t || 0); requestAnimationFrame(loop);
+  batchStep(t || 0); render(t || 0); requestAnimationFrame(loop);
 })();
 }
 </script>
