@@ -87,6 +87,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
 .strip .right{display:flex;align-items:center;gap:12px}
 .scanbtn{font:600 13px var(--display);letter-spacing:.06em;text-transform:uppercase;padding:7px 12px;border-radius:6px;border:1px solid var(--hi);background:var(--hi);color:var(--hi-ink);cursor:pointer;min-height:34px}
 .scanbtn:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+.scantoast{position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:50;background:var(--fg);color:var(--bg);font:600 15px var(--display);padding:10px 16px;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:calc(100% - 32px)}
 .scan{position:fixed;inset:0;z-index:50;background:#000;display:flex;align-items:center;justify-content:center}
 .scan video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .scan .frame{position:relative;width:min(80vw,520px);height:min(42vh,300px);border:3px solid #fff;border-radius:12px;box-shadow:0 0 0 100vmax rgba(0,0,0,.45)}
@@ -288,6 +289,55 @@ async function openScan(){
   }
 }
 document.addEventListener('click', e => { if (e.target.closest && e.target.closest('[data-scan]')) openScan(); });
+// ---- USB / Bluetooth barcode scanner (shop-floor PC): the scanner "types" the sticker then presses Enter.
+// It types far faster than a person (a few ms a key), so a burst of fast keys ending in Enter (or Tab) is a scan,
+// wherever the focus is on the page. A scan of a part in the job already open just jumps to it (no reload).
+let scanPart = null;                              // set by the 3D view: (job, part) -> true when it handled it
+{
+  const FAST = 45, MIN = 3;                       // ms between a scanner's keys; shortest real sticker
+  let buf = '', last = 0, fast = 0, endTimer = 0, leak = '';
+  const done = () => {
+    const text = buf; buf = ''; fast = 0; clearTimeout(endTimer);
+    // the first keys of the scan went into a box before the burst was spotted: take them back out
+    const el = document.activeElement;
+    if (leak && el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') && el.value.endsWith(leak)){ el.value = el.value.slice(0, -leak.length); el.dispatchEvent(new Event('input')); }
+    leak = '';
+    if (el && el.blur) el.blur();
+    gotScan(text);
+  };
+  addEventListener('keydown', e => {
+    if (e.ctrlKey || e.altKey || e.metaKey) return;
+    const now = e.timeStamp || performance.now(), gap = now - last;   // (when the key was pressed, not when the page got to it: a busy frame mustn't split a scan)
+    if (e.key === 'Enter' || e.key === 'Tab'){
+      if (buf.length >= MIN && fast >= buf.length - 1 && gap < 120){ e.preventDefault(); e.stopPropagation(); done(); }
+      else buf = '';
+      return;
+    }
+    if (e.key.length !== 1) return;               // (Shift for capitals, etc.: part of a scan, not a key of its own)
+    last = now;
+    if (gap > FAST){ buf = e.key; fast = 0; leak = e.key; }
+    else { buf += e.key; fast++; }
+    // two fast keys in a row: it's the scanner - keep the rest out of whatever box has the focus
+    if (fast >= 2){ e.preventDefault(); e.stopPropagation(); }
+    else if (fast === 1) leak += e.key;
+    // a scanner set up without Enter at the end: a long fast burst that just stops
+    clearTimeout(endTimer);
+    if (fast >= 7) endTimer = setTimeout(() => { if (buf.length >= 8 && fast >= buf.length - 1) done(); }, 150);
+  }, true);
+}
+function scanToast(msg){
+  let t = $('scanToast');
+  if (!t){ t = document.createElement('div'); t.id = 'scanToast'; t.className = 'scantoast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
+  t.textContent = msg; t.hidden = false; clearTimeout(t._h); t._h = setTimeout(() => { t.hidden = true; }, 4000);
+}
+function gotScan(text){
+  const t = scanTarget(text);
+  if (!t){ scanToast(/^\d+$/.test(text.trim()) ? 'Part ' + text.trim() + ': open the job first (or scan the sticker\'s QR code)' : 'That barcode is not a part sticker'); return; }
+  if ($('scan') && !$('scan').hidden && $('scanClose')) $('scanClose').click();      // camera scanner open: close it
+  if (scanPart && scanPart(t.j, t.p)) return;
+  scanToast('Opening ' + t.j + (t.p ? ' · part ' + t.p : '') + '…');
+  location.assign(location.pathname + '?j=' + encodeURIComponent(t.j) + (t.p ? '&p=' + encodeURIComponent(t.p) : ''));
+}
 
 // the list of published jobs (jobs/index.json, kept by the sync)
 async function jobIndex(){
@@ -1083,6 +1133,17 @@ function fromHash(){
   }
 }
 addEventListener('hashchange', fromHash);
+// a scan of another part in this same job: straight to it, no reload
+scanPart = (j, p) => {
+  if (!p || slug(j) !== slug(RAWJ) && !(NUM && slug(j) === slug(NUM[1]))) return false;
+  const id = String(p).replace(/^p/i, '').trim();
+  if (!byId.has(id)) return false;               // (another room of the job: load that page)
+  Q.set('p', id);
+  try { history.replaceState(null, '', location.pathname + '?' + Q.toString()); } catch (_) {}
+  infoClosed = false; delete $('card').dataset.msg;
+  if (iso !== null) isolate(null);
+  fromHash(); return true;
+};
 
 function setView(v){ view = v; $('vCab').setAttribute('aria-pressed', v === 'cab'); $('vJob').setAttribute('aria-pressed', v === 'job'); reframe(); }
 function hintText(){
