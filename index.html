@@ -754,7 +754,13 @@ const TEX_MAX = PHONE ? 1024 : 2048;
 // (hinges, back faces, edges) bleed through door faces. (It ignores polygonOffset, so the converter keeps
 // coplanar faces 2 mm apart instead.)
 // (Desktops keep normal depth: enough precision, and the ambient occlusion pass needs it.)
-const renderer = new THREE.WebGLRenderer({antialias:true, logarithmicDepthBuffer:PHONE, precision:'highp', powerPreference: PHONE ? 'low-power' : 'high-performance'});
+// LITE (a tablet/PC that measured "low" before, or ?q=low / ?lite): simple matte shading instead of the realistic
+// finish model, no edge smoothing and normal depth - each pixel is several times cheaper on small graphics chips
+// (the shop tablet's Mali-G57 drew a plain wall at 9 frames a second with the full finish model)
+const LITE = (() => { const q = (location.search.match(/[?&]q=(high|mid|low)\b/) || [])[1];
+  if (/[?&]lite\b/.test(location.search) || q === 'low') return true; if (q || /[?&]bench\b/.test(location.search)) return false;
+  try { const s = JSON.parse(localStorage.getItem('pf-quality') || 'null'); return !!(s && s.steps >= 4); } catch (_) { return false; } })();
+const renderer = new THREE.WebGLRenderer({antialias: !LITE, logarithmicDepthBuffer: PHONE && !LITE, precision: 'highp', powerPreference: PHONE ? 'low-power' : 'high-performance'});
 renderer.setPixelRatio(Math.min(devicePixelRatio, PHONE ? 1.25 : 1.5));   // (2x on a high-res screen: 4x the pixels for little gain)
 stage.prepend(renderer.domElement);
 const scene = new THREE.Scene();
@@ -776,6 +782,7 @@ const hemi = new THREE.HemisphereLight(0xfffaf2, 0x8a8178, 0.18); scene.add(hemi
 const headlamp = new THREE.DirectionalLight(0xffffff, 0.32); headlamp.position.set(0.3, 0.5, 1);
 camera.add(headlamp); headlamp.target.position.set(0, 0, -1); camera.add(headlamp.target); scene.add(camera);
 const sun = new THREE.DirectionalLight(0xfff6ea, 1.1);          // the ceiling light: casts the shadows
+if (LITE){ hemi.intensity = 0.62; headlamp.intensity = 0.55; }   // (matte shading has no studio reflections to light it: more plain light instead)
 scene.add(sun); scene.add(sun.target);
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.shadowMap.autoUpdate = false;
 sun.castShadow = true; sun.shadow.mapSize.set(PHONE ? 1024 : 2048, PHONE ? 1024 : 2048);
@@ -869,8 +876,11 @@ function finishOf(mi, kind){
 }
 function realMaterial(mi, kind){
   const d = MATS[mi], f = finishOf(mi, kind);
-  const mat = new THREE.MeshStandardMaterial({side:THREE.DoubleSide, transparent:true, polygonOffset:true, polygonOffsetFactor:1, polygonOffsetUnits:1,
-    roughness: f.r, metalness: f.m, envMapIntensity: ENV_LEVEL * (f.m > .5 ? 1.8 : f.r < .3 ? 1.4 : 1), clippingPlanes: CLIP, clipShadows: true});
+  const base = {side:THREE.DoubleSide, polygonOffset:true, polygonOffsetFactor:1, polygonOffsetUnits:1, clippingPlanes: CLIP, clipShadows: true};
+  const mat = LITE ? new THREE.MeshLambertMaterial(base)
+    : new THREE.MeshStandardMaterial(Object.assign(base, {roughness: f.r, metalness: f.m, envMapIntensity: ENV_LEVEL * (f.m > .5 ? 1.8 : f.r < .3 ? 1.4 : 1)}));
+  // see-through only while faded: solid boards are drawn front to back and skip hidden pixels (much less work)
+  Object.defineProperty(mat, 'transparent', {get(){ return this.opacity < 0.999; }, set(_){}, configurable: true});
   if (d && d.t){
     // v2 UVs are already in real-size repeats; v1 needs the material's tile size
     const t = JOB.v >= 2 ? textureAt(d.t, 1, 1) : textureAt(d.t, 1 / (d.s[0] || 24), 1 / (d.s[1] || 24));
@@ -2378,7 +2388,7 @@ function quality(){
   const apply = n => { for (let i = 0; i < n && i < steps.length; i++) steps[i][1](); qualitySteps = n; qualityLevel = n === 0 ? 'high' : n <= 2 ? 'mid' : 'low'; };
   if (force){ apply({high: 0, mid: 2, low: 5}[force]); console.log('quality: ' + force + ' (forced)'); return; }
   let saved = null; try { saved = JSON.parse(localStorage.getItem('pf-quality') || 'null'); } catch (_) {}
-  if (saved && saved.gpu === GPU && !/[?&]bench\b/.test(location.search)){ apply(saved.steps); console.log('quality: ' + qualityLevel + ' (kept for this computer)'); return; }
+  if (saved && (saved.gpu === GPU || LITE) && !/[?&]bench\b/.test(location.search)){ apply(saved.steps); console.log('quality: ' + qualityLevel + (LITE ? ' (lite)' : '') + ' (kept for this computer)'); return; }
   time(1);                                          // (first frame uploads everything: not counted)
   let ms = time(3), i = 0; const log = [Math.round(ms)];
   while (ms > 25 && i < steps.length){
@@ -2388,6 +2398,8 @@ function quality(){
   qualitySteps = i; qualityLevel = i === 0 ? 'high' : i <= 2 ? 'mid' : 'low';
   try { localStorage.setItem('pf-quality', JSON.stringify({gpu: GPU, steps: i, ms: log})); } catch (_) {}
   console.log('quality: ' + qualityLevel + ' (ms per frame: ' + log.join(', ') + ')');
+  // still slow with everything off: open again in LITE (simpler shading needs a fresh start) - once
+  if (i >= 4 && !LITE){ try { if (!sessionStorage.getItem('pf-lite')){ sessionStorage.setItem('pf-lite', '1'); scanToast('Setting up for this device…'); setTimeout(() => location.reload(), 600); } } catch (_) {} }
 }
 // ?perf: a small readout (graphics chip, quality, frames a second, load and scan times) to diagnose a slow PC
 let fpsN = 0, fpsT = performance.now(), fps = 0, firstFrameMs = 0, scanMs = 0;
@@ -2398,7 +2410,7 @@ function perfTick(drawn){
   if (now - fpsT < 1000) return;
   fps = Math.round(fpsN * 1000 / (now - fpsT)); fpsN = 0; fpsT = now;
   const el = $('perfBox'); if (!el) return;
-  el.textContent = [GPU || 'graphics chip unknown', 'quality ' + qualityLevel + ' · sharpness ' + renderer.getPixelRatio() + 'x · soft shading ' + (ao && aoOn ? 'on' : 'off') + ' · shadows ' + (renderer.shadowMap.enabled ? 'on' : 'off'),
+  el.textContent = [GPU || 'graphics chip unknown', 'quality ' + qualityLevel + (LITE ? ' (lite)' : '') + ' · sharpness ' + renderer.getPixelRatio() + 'x · soft shading ' + (ao && aoOn ? 'on' : 'off') + ' · shadows ' + (renderer.shadowMap.enabled ? 'on' : 'off'),
     fps + ' frames/s while moving · ' + renderer.info.render.calls + ' draws',
     'job file in ' + Math.round(JOB_FETCHED) + ' ms · 3D built ' + Math.round(T0) + ' ms · first picture ' + Math.round(firstFrameMs) + ' ms' + (scanMs ? ' · last scan to part shown ' + Math.round(scanMs) + ' ms' : '')].join('\n');
 }
