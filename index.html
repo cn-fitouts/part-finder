@@ -160,6 +160,17 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
 .scanbtn{font:600 13px var(--display);letter-spacing:.06em;text-transform:uppercase;padding:7px 14px;border-radius:6px;border:1px solid var(--cyan);background:var(--cyan);color:#00212e;cursor:pointer;min-height:34px}
 .scanbtn:hover{background:#2bbbe4}
 .scanbtn:focus-visible{outline:2px solid #ffffff;outline-offset:2px}
+.tunebox{position:fixed;right:8px;bottom:8px;z-index:61;width:min(300px,calc(100% - 16px));padding:10px 12px;border-radius:10px;background:var(--card);border:1px solid var(--line);box-shadow:0 8px 30px rgba(0,0,0,.2);display:grid;gap:8px;font-size:14px}
+.tunebox b{color:var(--brand)}
+.tunebox label{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tunebox input[type=range]{flex:1 1 100%;accent-color:var(--mid);height:28px}
+.tunebox input[type=checkbox]{width:20px;height:20px;accent-color:var(--mid)}
+.tunebox small{color:var(--muted)}
+.tunebox output{font-weight:700;color:var(--mid)}
+.turow{display:flex;gap:6px}
+.turow button{flex:1;font:600 13px var(--display);padding:8px;border-radius:6px;border:1px solid var(--mid);background:var(--card);color:var(--mid);cursor:pointer}
+.turow button:first-child{background:var(--mid);color:#fff}
+#tuMsg{margin:0;font-size:12px;color:var(--muted)}
 .perfbox{position:fixed;left:8px;bottom:8px;z-index:60;margin:0;padding:8px 10px;border-radius:8px;background:rgba(0,33,46,.88);color:#e6f4fa;font:500 12px/1.4 var(--mono);white-space:pre-wrap;max-width:calc(100% - 16px);pointer-events:none}
 .scantoast{position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:50;background:var(--fg);color:var(--bg);font:600 15px var(--display);padding:10px 16px;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:calc(100% - 32px)}
 .scan{position:fixed;inset:0;z-index:50;background:#000;display:flex;align-items:center;justify-content:center}
@@ -757,10 +768,13 @@ const TEX_MAX = PHONE ? 1024 : 2048;
 // LITE (a tablet/PC that measured "low" before, or ?q=low / ?lite): simple matte shading instead of the realistic
 // finish model, no edge smoothing and normal depth - each pixel is several times cheaper on small graphics chips
 // (the shop tablet's Mali-G57 drew a plain wall at 9 frames a second with the full finish model)
-const LITE = (() => { const q = (location.search.match(/[?&]q=(high|mid|low)\b/) || [])[1];
+// TUNE: settings picked by hand on the ?perf tuning panel, kept for this device (they replace the automatic level)
+const TUNE = (() => { try { return JSON.parse(localStorage.getItem('pf-tune') || 'null'); } catch (_) { return null; } })();
+const LITE = (() => { if (TUNE && typeof TUNE.lite === 'boolean') return TUNE.lite;
+  const q = (location.search.match(/[?&]q=(high|mid|low)\b/) || [])[1];
   if (/[?&]lite\b/.test(location.search) || q === 'low') return true; if (q || /[?&]bench\b/.test(location.search)) return false;
   try { const s = JSON.parse(localStorage.getItem('pf-quality') || 'null'); return !!(s && s.steps >= 4); } catch (_) { return false; } })();
-const renderer = new THREE.WebGLRenderer({antialias: !LITE, logarithmicDepthBuffer: PHONE && !LITE, precision: 'highp', powerPreference: PHONE ? 'low-power' : 'high-performance'});
+const renderer = new THREE.WebGLRenderer({antialias: TUNE && typeof TUNE.aa === 'boolean' ? TUNE.aa : !LITE, logarithmicDepthBuffer: PHONE && !LITE, precision: 'highp', powerPreference: PHONE ? 'low-power' : 'high-performance'});
 renderer.setPixelRatio(Math.min(devicePixelRatio, PHONE ? 1.25 : 1.5));   // (2x on a high-res screen: 4x the pixels for little gain)
 stage.prepend(renderer.domElement);
 const scene = new THREE.Scene();
@@ -2372,6 +2386,12 @@ const GPU = (() => { try { const gl = renderer.getContext(), x = gl.getExtension
 const SOFTWARE_GL = /swiftshader|llvmpipe|basic render|software/i.test(GPU);
 function quality(){
   const force = (location.search.match(/[?&]q=(high|mid|low)\b/) || [])[1];
+  if (TUNE){                                        // picked by hand on the tuning panel
+    if (TUNE.ao === false || !ao) aoOn = false;
+    if (TUNE.shadows === false){ renderer.shadowMap.enabled = false; sun.castShadow = false; scene.traverse(o => { if (o.material) o.material.needsUpdate = true; }); }
+    if (TUNE.pr) { renderer.setPixelRatio(TUNE.pr); resize(); aoSize(); }
+    qualityLevel = 'tuned'; console.log('quality: tuned', TUNE); return;
+  }
   if (navigator.webdriver && !force && !/[?&]bench\b/.test(location.search)) return;
   const gl = renderer.getContext(), px = new Uint8Array(4);
   const time = n => { const t0 = performance.now();
@@ -2414,7 +2434,35 @@ function perfTick(drawn){
     fps + ' frames/s while moving · ' + renderer.info.render.calls + ' draws',
     'job file in ' + Math.round(JOB_FETCHED) + ' ms · 3D built ' + Math.round(T0) + ' ms · first picture ' + Math.round(firstFrameMs) + ' ms' + (scanMs ? ' · last scan to part shown ' + Math.round(scanMs) + ' ms' : '')].join('\n');
 }
-if (/[?&]perf\b/.test(location.search)){ const el = document.createElement('pre'); el.id = 'perfBox'; el.className = 'perfbox'; document.body.appendChild(el); }
+if (/[?&]perf\b/.test(location.search)){ const el = document.createElement('pre'); el.id = 'perfBox'; el.className = 'perfbox'; document.body.appendChild(el); tunePanel(); }
+// ?perf tuning panel: change the quality live, watch the frames a second, keep what works for this device
+function tunePanel(){
+  const box = document.createElement('section'); box.className = 'tunebox'; box.setAttribute('aria-label', 'Quality tuning');
+  const cur = () => ({pr: renderer.getPixelRatio(), lite: LITE, aa: renderer.getContextAttributes().antialias, shadows: renderer.shadowMap.enabled, ao: !!(ao && aoOn)});
+  const st = cur();
+  box.innerHTML = '<b>Quality for this device</b>' +
+    '<label>Sharpness <output id="tuPrO"></output><input type="range" id="tuPr" min="0.5" max="2" step="0.25"></label>' +
+    '<label><input type="checkbox" id="tuLite"> Simple matte shading (lite) <small>reloads</small></label>' +
+    '<label><input type="checkbox" id="tuAa"> Smooth edges <small>reloads</small></label>' +
+    '<label><input type="checkbox" id="tuSh"> Shadows</label>' +
+    (ao ? '<label><input type="checkbox" id="tuAo"> Soft shading in corners</label>' : '') +
+    '<div class="turow"><button type="button" id="tuSave">Keep these</button><button type="button" id="tuAuto">Back to automatic</button></div><p id="tuMsg"></p>';
+  document.body.appendChild(box);
+  const pr = $('tuPr'); pr.value = st.pr; $('tuPrO').textContent = st.pr + 'x';
+  $('tuLite').checked = st.lite; $('tuAa').checked = st.aa; $('tuSh').checked = st.shadows; if ($('tuAo')) $('tuAo').checked = st.ao;
+  const remat = () => scene.traverse(o => { if (o.material) o.material.needsUpdate = true; });
+  pr.oninput = () => { renderer.setPixelRatio(+pr.value); resize(); aoSize(); $('tuPrO').textContent = pr.value + 'x'; markDirty(1500); };
+  $('tuSh').onchange = () => { const on = $('tuSh').checked; renderer.shadowMap.enabled = on; sun.castShadow = on; shadowDirty = true; remat(); markDirty(1500); };
+  if ($('tuAo')) $('tuAo').onchange = () => { aoOn = $('tuAo').checked; gaps.length = 0; markDirty(1500); };
+  const keep = reload => {
+    const t = {pr: +pr.value, lite: $('tuLite').checked, aa: $('tuAa').checked, shadows: $('tuSh').checked, ao: $('tuAo') ? $('tuAo').checked : false};
+    try { localStorage.setItem('pf-tune', JSON.stringify(t)); } catch (_) {}
+    if (reload) location.reload(); else $('tuMsg').textContent = 'Kept for this device: ' + t.pr + 'x' + (t.lite ? ', lite' : ', full shading') + (t.aa ? ', smooth edges' : '') + (t.shadows ? ', shadows' : '') + (t.ao ? ', soft shading' : '');
+  };
+  $('tuLite').onchange = $('tuAa').onchange = () => { $('tuMsg').textContent = 'Reloading…'; keep(true); };
+  $('tuSave').onclick = () => keep(false);
+  $('tuAuto').onclick = () => { try { localStorage.removeItem('pf-tune'); localStorage.removeItem('pf-quality'); } catch (_) {} location.reload(); };
+}
 // no graphics card in use (Chrome fell back to drawing 3D in software): every frame is slow - say so on screen
 if (SOFTWARE_GL && !navigator.webdriver) setTimeout(() => scanToast('3D is running without the graphics card on this PC - see "SLOW ON THE SHOP PC" in the Part Finder README'), 1500);
 try { quality(); } catch (e){ console.log('quality check failed', e); }
