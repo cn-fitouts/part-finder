@@ -158,6 +158,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
 .scanbtn{font:600 13px var(--display);letter-spacing:.06em;text-transform:uppercase;padding:7px 14px;border-radius:6px;border:1px solid var(--cyan);background:var(--cyan);color:#00212e;cursor:pointer;min-height:34px}
 .scanbtn:hover{background:#2bbbe4}
 .scanbtn:focus-visible{outline:2px solid #ffffff;outline-offset:2px}
+.perfbox{position:fixed;left:8px;bottom:8px;z-index:60;margin:0;padding:8px 10px;border-radius:8px;background:rgba(0,33,46,.88);color:#e6f4fa;font:500 12px/1.4 var(--mono);white-space:pre-wrap;max-width:calc(100% - 16px);pointer-events:none}
 .scantoast{position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:50;background:var(--fg);color:var(--bg);font:600 15px var(--display);padding:10px 16px;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:calc(100% - 32px)}
 .scan{position:fixed;inset:0;z-index:50;background:#000;display:flex;align-items:center;justify-content:center}
 .scan video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
@@ -325,6 +326,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/math/SimplexNoise.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/SSAOPass.js"></script>
 <script>
+var JOB_FETCHED = 0;                               // (?perf: when the job file had arrived)
 const Q = new URLSearchParams(location.search);
 const RAWJ = (Q.get('j') || '').trim();
 // Each CV job has its own page, keyed by its full job name ("J1093 - 62 Florizel St - Kitchen" ->
@@ -438,6 +440,7 @@ function scanToast(msg){
   t.textContent = msg; t.hidden = false; clearTimeout(t._h); t._h = setTimeout(() => { t.hidden = true; }, 4000);
 }
 function gotScan(text){
+  try { sessionStorage.setItem('pf-scan', String(Date.now())); } catch (_) {}      // (?perf: time from scan to part shown)
   const t = scanTarget(text);
   if (!t){ scanToast(/^\d+$/.test(text.trim()) ? 'Part ' + text.trim() + ': open the job first (or scan the sticker\'s QR code)' : 'That barcode is not a part sticker'); return; }
   if ($('scan') && !$('scan').hidden && $('scanClose')) $('scanClose').click();      // camera scanner open: close it
@@ -700,7 +703,7 @@ async function drawSettings(jobs){
 }
 (async () => {
   if (!RAWJ) return home();
-  const load = async k => { try { const r = await fetch('jobs/' + encodeURIComponent(k) + '.json'); if (r.ok) return await r.json(); } catch (_) {} return null; };
+  const load = async k => { try { const r = await fetch('jobs/' + encodeURIComponent(k) + '.json'); if (r.ok){ const j = await r.json(); JOB_FETCHED = performance.now(); return j; } } catch (_) {} return null; };
   // 1. the full CV job name (sticker QRs)
   let job = null;
   if (!(NUM && slug(RAWJ) === slug(NUM[1])) && (job = await load(slug(RAWJ)))) return job.rooms ? openRoom(job) : start(job);
@@ -2186,7 +2189,7 @@ function drawAO(){
 // and section caps. Any change to a board (hide, finish, highlight, explode) splits the batches straight away and
 // they are rebuilt once things are still again.
 const BATCH_LAYER = 5, NOBATCH = /[?&]nobatch\b/.test(location.search);
-let batches = [], batchMembers = [], batchWanted = 0, batchStable = 0, batchLastSig = '';
+let batches = [], batchMembers = [], batchWanted = 0, batchStable = 0, batchLastSig = '', batchPartial = false;
 const batchObjs = () => parts.concat(hardware).filter(x => !(x.p && x.p.k === 'wall'));
 function meshKey(m){
   const t = m.material;
@@ -2205,7 +2208,7 @@ function unbatch(){
   if (!batches.length) return;
   for (const b of batches){ if (b.parent) b.parent.remove(b); b.geometry.dispose(); }
   for (const r of batchMembers) r.ob.layers.set(0);
-  batches = []; batchMembers = []; forceFrame = true;   // (same boards, so shadows and caps stay as they are)
+  batches = []; batchMembers = []; batchPartial = false; forceFrame = true;   // (same boards, so shadows and caps stay as they are)
 }
 function mergeMeshes(list, lines){
   let nv = 0, ni = 0;
@@ -2260,7 +2263,7 @@ function rebuildBatches(){
       b.userData.noAO = first.userData.noAO; b.userData.batch = true; b.raycast = () => {};
       b.matrixAutoUpdate = false; b.updateMatrix();
       first.parent.add(b); batches.push(b);
-      for (const ob of chunk){ ob.layers.set(BATCH_LAYER); batchMembers.push(snap(ob)); }
+      for (const ob of chunk){ ob.layers.set(BATCH_LAYER); const r = snap(ob); r.b = b; batchMembers.push(r); }
     }
   }
   forceFrame = true; batchMs = performance.now() - t0;
@@ -2273,15 +2276,25 @@ function snap(ob){
   if (t.emissive){ r.er = t.emissive.r; r.eg = t.emissive.g; r.eb = t.emissive.b; r.ei = t.emissiveIntensity; r.ro2 = t.roughness; r.me = t.metalness; r.en = t.envMapIntensity; r.dw = t.depthWrite; }
   return r;
 }
-function batchValid(){
+// only the merged meshes holding a changed board are split (a scanned part lights up at once; the rest stay merged)
+function batchValid(){ return !staleBatches().size; }
+function staleBatches(){
+  const bad = new Set();
   for (const r of batchMembers){
+    if (bad.has(r.b)) continue;
     const ob = r.ob, t = ob.material;
     if (t !== r.t || ob.parent !== r.p || ob.visible !== r.ov || t.visible !== r.mv || t.opacity !== r.op || t.map !== r.map || ob.renderOrder !== r.ro || ob.castShadow !== r.cs
-      || ob.position.x !== r.x || ob.position.y !== r.y || ob.position.z !== r.z || t.color.r !== r.cr || t.color.g !== r.cg || t.color.b !== r.cb) return false;
+      || ob.position.x !== r.x || ob.position.y !== r.y || ob.position.z !== r.z || t.color.r !== r.cr || t.color.g !== r.cg || t.color.b !== r.cb){ bad.add(r.b); continue; }
     if (t.emissive && (t.emissive.r !== r.er || t.emissive.g !== r.eg || t.emissive.b !== r.eb || t.emissiveIntensity !== r.ei
-      || t.roughness !== r.ro2 || t.metalness !== r.me || t.envMapIntensity !== r.en || t.depthWrite !== r.dw)) return false;
+      || t.roughness !== r.ro2 || t.metalness !== r.me || t.envMapIntensity !== r.en || t.depthWrite !== r.dw)) bad.add(r.b);
   }
-  return true;
+  return bad;
+}
+function dropBatches(bad){
+  for (const b of bad){ if (b.parent) b.parent.remove(b); b.geometry.dispose(); }
+  batches = batches.filter(b => !bad.has(b));
+  batchMembers = batchMembers.filter(r => { if (!bad.has(r.b)) return true; r.ob.layers.set(0); return false; });
+  batchPartial = true; forceFrame = true;
 }
 function batchSig(){
   let n = 0, h = 0;
@@ -2289,10 +2302,13 @@ function batchSig(){
   return n + ':' + h + ':' + ex + ':' + exTarget;
 }
 function batchCheck(){             // (before each drawn frame)
-  if (batches.length && (ex !== 0 || exTarget !== 0 || !batchValid())){ unbatch(); batchLastSig = ''; }
+  if (!batches.length) return;
+  if (ex !== 0 || exTarget !== 0){ unbatch(); batchLastSig = ''; return; }
+  const bad = staleBatches();
+  if (bad.size){ dropBatches(bad); batchLastSig = ''; }
 }
 function batchStep(t){              // (every tick while not merged)
-  if (NOBATCH || batches.length || ex !== 0 || exTarget !== 0) return;           // exploded: boards move one by one
+  if (NOBATCH || (batches.length && !batchPartial) || ex !== 0 || exTarget !== 0) return;           // exploded: boards move one by one
   const s = batchSig();
   if (s !== batchLastSig){ batchLastSig = s; batchStable = t; return; }
   if (t - batchStable > 350) rebuildBatches();
@@ -2313,6 +2329,7 @@ function render(t){
   const moving = ex !== exTarget || movers.some(m => m.moved);
   const changed = sig !== frameSig || moving || forceFrame || t < busyUntil;
   frameSig = sig; forceFrame = false;
+  perfTick(changed);
   if (!changed){ lastT = 0; return; }
   if (lastT && t - lastT < 120 && ao && aoOn){
     gaps.push(t - lastT); if (gaps.length > 40) gaps.shift();
@@ -2326,6 +2343,62 @@ function render(t){
 new ResizeObserver(() => { aoSize(); markDirty(); }).observe(stage); aoSize();
 
 resize(); hintText(); fromHash();
+// ---- speed on this computer: the first time Part Finder opens a job here it times real frames (the worst case:
+// shadows redrawn too) and steps quality down until a frame takes under ~25 ms - soft shading off, normal sharpness,
+// smaller shadows, no shadows, lower sharpness. The result is kept for this computer, so later jobs (every scan)
+// start straight at that level. ?q=high|mid|low forces a level; ?bench measures again.
+const T0 = performance.now();
+let qualityLevel = 'high', qualitySteps = 0;
+const GPU = (() => { try { const gl = renderer.getContext(), x = gl.getExtension('WEBGL_debug_renderer_info');
+  return x ? String(gl.getParameter(x.UNMASKED_RENDERER_WEBGL)) : ''; } catch (_) { return ''; } })();
+const SOFTWARE_GL = /swiftshader|llvmpipe|basic render|software/i.test(GPU);
+function quality(){
+  const force = (location.search.match(/[?&]q=(high|mid|low)\b/) || [])[1];
+  if (navigator.webdriver && !force && !/[?&]bench\b/.test(location.search)) return;
+  const gl = renderer.getContext(), px = new Uint8Array(4);
+  const time = n => { const t0 = performance.now();
+    for (let i = 0; i < n; i++){ renderer.shadowMap.needsUpdate = true; renderer.render(scene, camera); if (ao && aoOn) drawAO(); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); }
+    return (performance.now() - t0) / n; };
+  const remat = () => scene.traverse(o => { if (o.material) o.material.needsUpdate = true; });
+  const steps = [
+    ['no soft shading', () => { if (!ao || !aoOn) return false; aoOn = false; }],
+    ['normal sharpness', () => { if (renderer.getPixelRatio() <= 1) return false; renderer.setPixelRatio(1); resize(); aoSize(); }],
+    ['small shadows', () => { if (sun.shadow.mapSize.x <= 1024) return false; sun.shadow.mapSize.set(1024, 1024); if (sun.shadow.map){ sun.shadow.map.dispose(); sun.shadow.map = null; } }],
+    ['no shadows', () => { if (!renderer.shadowMap.enabled) return false; renderer.shadowMap.enabled = false; sun.castShadow = false; remat(); }],
+    ['low sharpness', () => { if (renderer.getPixelRatio() <= 0.75) return false; renderer.setPixelRatio(0.75); resize(); aoSize(); }],
+  ];
+  const apply = n => { for (let i = 0; i < n && i < steps.length; i++) steps[i][1](); qualitySteps = n; qualityLevel = n === 0 ? 'high' : n <= 2 ? 'mid' : 'low'; };
+  if (force){ apply({high: 0, mid: 2, low: 5}[force]); console.log('quality: ' + force + ' (forced)'); return; }
+  let saved = null; try { saved = JSON.parse(localStorage.getItem('pf-quality') || 'null'); } catch (_) {}
+  if (saved && saved.gpu === GPU && !/[?&]bench\b/.test(location.search)){ apply(saved.steps); console.log('quality: ' + qualityLevel + ' (kept for this computer)'); return; }
+  time(1);                                          // (first frame uploads everything: not counted)
+  let ms = time(3), i = 0; const log = [Math.round(ms)];
+  while (ms > 25 && i < steps.length){
+    if (steps[i][1]() !== false){ ms = time(3); log.push(steps[i][0] + ' ' + Math.round(ms)); }
+    i++;
+  }
+  qualitySteps = i; qualityLevel = i === 0 ? 'high' : i <= 2 ? 'mid' : 'low';
+  try { localStorage.setItem('pf-quality', JSON.stringify({gpu: GPU, steps: i, ms: log})); } catch (_) {}
+  console.log('quality: ' + qualityLevel + ' (ms per frame: ' + log.join(', ') + ')');
+}
+// ?perf: a small readout (graphics chip, quality, frames a second, load and scan times) to diagnose a slow PC
+let fpsN = 0, fpsT = performance.now(), fps = 0, firstFrameMs = 0, scanMs = 0;
+function perfTick(drawn){
+  if (drawn){ fpsN++; if (!firstFrameMs) firstFrameMs = performance.now();
+    try { const st = +sessionStorage.getItem('pf-scan'); if (st){ sessionStorage.removeItem('pf-scan'); if (Date.now() - st < 60000){ scanMs = Date.now() - st; console.log('scan to part shown: ' + scanMs + ' ms'); } } } catch (_) {} }
+  const now = performance.now();
+  if (now - fpsT < 1000) return;
+  fps = Math.round(fpsN * 1000 / (now - fpsT)); fpsN = 0; fpsT = now;
+  const el = $('perfBox'); if (!el) return;
+  el.textContent = [GPU || 'graphics chip unknown', 'quality ' + qualityLevel + ' · sharpness ' + renderer.getPixelRatio() + 'x · soft shading ' + (ao && aoOn ? 'on' : 'off') + ' · shadows ' + (renderer.shadowMap.enabled ? 'on' : 'off'),
+    fps + ' frames/s while moving · ' + renderer.info.render.calls + ' draws',
+    'job file in ' + Math.round(JOB_FETCHED) + ' ms · 3D built ' + Math.round(T0) + ' ms · first picture ' + Math.round(firstFrameMs) + ' ms' + (scanMs ? ' · last scan to part shown ' + Math.round(scanMs) + ' ms' : '')].join('\n');
+}
+if (/[?&]perf\b/.test(location.search)){ const el = document.createElement('pre'); el.id = 'perfBox'; el.className = 'perfbox'; document.body.appendChild(el); }
+// no graphics card in use (Chrome fell back to drawing 3D in software): every frame is slow - say so on screen
+if (SOFTWARE_GL && !navigator.webdriver) setTimeout(() => scanToast('3D is running without the graphics card on this PC - see "SLOW ON THE SHOP PC" in the Part Finder README'), 1500);
+try { quality(); } catch (e){ console.log('quality check failed', e); }
+forceFrame = true;
 (function loop(t){
   if (sel) for (const m of sel.meshes) m.material.emissiveIntensity = still ? .35 : .2 + .25 * (1 + Math.sin((t || 0) / 300)) / 2;
   if (sel && !still) forceFrame = true;           // the scanned part's pulse keeps drawing
