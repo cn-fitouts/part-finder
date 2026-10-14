@@ -294,6 +294,44 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
 .srow span{font-size:13px}
 .srow output{grid-column:2;font:500 12px var(--mono);color:var(--muted);margin-top:-6px}
 .srow input[type=range]{width:100%;accent-color:var(--hi)}
+/* phones: header in two short rows, toolbar one scrolling row (Back stays in view), lists under the 3D */
+@media (max-width:640px){
+  .strip{flex-wrap:wrap;padding:6px 10px;gap:6px 8px;font-size:12px}
+  .strip > span:first-child{flex:1 1 0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .strip .right{flex:1 1 100%;order:3;justify-content:space-between;gap:6px}
+  .strip #count{display:none}
+  .roomnav{order:2;flex:1 1 100%;justify-content:center;font-size:14px}
+  .brandlogo{height:22px;width:22px;margin-right:4px}
+  .scanbtn{padding:6px 12px;min-height:32px}
+  .docbtns{overflow-x:auto;flex:1;margin:0}
+  .docbtns button{padding:6px 8px;font-size:11px;min-height:32px;white-space:nowrap}
+  .views{flex-wrap:nowrap;overflow-x:auto;left:0;right:0;top:6px;padding:0 6px;gap:6px;scrollbar-width:none;align-items:flex-start}
+  .views::-webkit-scrollbar{display:none}
+  .vg{flex:none;padding:3px;gap:3px}
+  .views button{font-size:12px;padding:6px 9px;min-height:34px;white-space:nowrap}
+  .vg.vright{position:sticky;right:0;margin-left:auto;padding-left:6px}
+  .vback{padding:7px 12px!important}
+  .velev span{min-width:64px;font-size:12px}
+  .vcap{display:none}
+  #work{flex-direction:column}
+  #work #stage{order:1;flex:1 1 55%;min-height:40vh}
+  .sidelist,.sidelist.left{order:2;width:100%!important;flex:0 1 auto;max-height:42vh;border:0;border-top:2px solid var(--cyan);padding:6px 8px}
+  .sidelist table{font-size:12px}
+  .sidelist th,.sidelist td{padding:5px 3px}
+  .sidelist td.sz{font-size:11px}
+  .slopen,.slopen.left{top:auto;bottom:8px;right:8px;left:auto}
+  .tip{left:8px;right:8px;bottom:8px;padding:8px 10px}
+  .tip .name{font-size:16px}
+  .tip .where,.tip .specs{font-size:12px}
+  .tip .tag span{font-size:16px}
+  .card{padding:8px 44px 10px 10px}
+  .card .name{font-size:18px}
+  .docview{top:0}
+  .dvbar select,.dvbar button{padding:6px 8px;font-size:12px;min-height:34px}
+  .npanel{top:50px;right:6px;width:calc(100% - 12px)}
+  .hint{display:none}
+  .card.empty{display:none}                   /* (the empty "scan a label" card: no room for it on a phone) */
+}
 </style>
 
 </head><body>
@@ -1722,6 +1760,18 @@ function hwItem(c, n){
   if (/countertop/i.test(n)) return 'Benchtop (CV)';
   return (n.replace(/^(Base|Upper|Tall|Vanity|Appliance)?\s*Cabinet\s*(Widget\s*)?/i, '') || c) + (c ? ' · ' + c : '');
 }
+// a handle: its length (CV models it at its real size) and finish (the model's material name, e.g. "Brushed Alumini3")
+function handleName(h){
+  const z = h.box.getSize(new THREE.Vector3()), len = Math.round(Math.max(z.x, z.y, z.z));
+  const m = h.meshes[0] && MATS[h.meshes[0].userData.mi], fin = m && (m.name || (m.t || '').replace(/\.[a-z]+$/i, ''));
+  return 'Handle ' + len + ' long' + (fin ? ' · ' + fin.replace(/[_\d]+$/, '').replace(/_/g, ' ').trim() : '');
+}
+// the team's names for hardware (sync: "hardware names.txt" -> jobs/hardware_names.json): {generated name: real name}
+let hwNames = {};
+fetch('jobs/hardware_names.json', {cache: 'no-cache'}).then(r => r.ok ? r.json() : {}).then(j => {
+  for (const [k, v] of Object.entries(j || {})) hwNames[k.toLowerCase()] = v;
+  if (iso !== null && !$('cutList').hidden) buildCutList();
+}).catch(() => {});
 // a drawer's system, from the metal sides CV draws for it: Blum Legrabox sides are ~12.7 mm thick, as long as
 // the runner (550 = 550 mm) and one of five heights (N 66.5, M 90.5, K 128.5, C 177, F 241); colour from the model
 const LEGRA = [['N', 66.5], ['M', 90.5], ['K', 128.5], ['C', 177], ['F', 241]];
@@ -1782,12 +1832,19 @@ function buildCutList(){
   for (const mv of drawers){ const d = drawerSpec(mv); add(d.name, 1); if (d.runners) add('Drawer runners (pair)', 1); }
   const doors = movers.filter(mv => mv.m.t === 'door' && !mv.m.fixed && parts[mv.m.f] && isoGs.has(parts[mv.m.f].p.g));
   if (doors.length) add('Door (opening)', doors.length);
-  for (const h of hardware) if (isoGs.has(h.p.g) && h.p.k === 'hw'){ const it = hwItem(h.p.c, h.p.n); if (it) add(it, 1); }
+  // hinges per door, by the door's opening angle in CV (110° / 155° / 170°...)
+  for (const mv of doors){ const n = (mv.m.arms || []).length; if (n) add('Hinge' + (mv.m.a ? ' ' + mv.m.a + '°' : ''), n); }
+  for (const h of hardware) if (isoGs.has(h.p.g) && h.p.k === 'hw'){
+    const it = hwItem(h.p.c, h.p.n); if (!it || it === 'Hinge') continue;
+    add(it === 'Handle' ? handleName(h) : it, 1);
+  }
   if (hw.size){
     head('Hardware & drawers');
     for (const [name, n] of [...hw].sort((a, b) => a[0].localeCompare(b[0]))){
       const tr = document.createElement('tr'); tr.className = 'hwr';
-      tr.innerHTML = '<td></td><td colspan="4"></td>'; tr.children[0].textContent = n; tr.children[1].textContent = name; tb.appendChild(tr);
+      const real = hwNames[name.toLowerCase()];                 // (the team's own name for it: "hardware names.txt")
+      tr.innerHTML = '<td></td><td colspan="4"></td>'; tr.children[0].textContent = n; tr.children[1].textContent = real || name;
+      if (real) tr.title = name; tb.appendChild(tr);
     }
   }
   if (!mats.length && !hw.size) tb.innerHTML = '<tr><td colspan="5">No cut-list parts in this cabinet</td></tr>';
