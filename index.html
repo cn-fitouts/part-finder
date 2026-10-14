@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <style>*{box-sizing:border-box}body{margin:0}[hidden]{display:none!important}</style>
 <title>Part Finder</title>
-<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#004E70">
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#000000">
 <link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png"><meta name="mobile-web-app-capable" content="yes">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
@@ -21,17 +21,19 @@
   --brand:#003a54; --bg:#061d28; --stage:#0a2531; --card:#0e2e3c; --fg:#e6f4fa; --muted:#93b4c3; --line:#1f4a5c;
   --hi:#00A8D8; --hi-ink:#00212e; --panel:#5b5852; --edge:#9fbccb; --ghost:#3f6576; color-scheme:dark}}
 :root[data-theme="dark"]{
-  --brand:#003a54; --bg:#061d28; --stage:#0a2531; --card:#0e2e3c; --fg:#e6f4fa; --muted:#93b4c3; --line:#1f4a5c;
-  --hi:#00A8D8; --hi-ink:#00212e; --panel:#5b5852; --edge:#9fbccb; --ghost:#3f6576; color-scheme:dark}
+  /* Part Finder runs dark, matched to the CN Fitouts logo: black, logo cyan, white */
+  --brand:#000000; --mid:#0094c4; --cyan:#00A8D8; --pale:#0d2630;
+  --bg:#050607; --stage:#000000; --card:#101417; --fg:#eef6f9; --muted:#8ea3ad; --line:#232c32;
+  --hi:#00A8D8; --hi-ink:#00141b; --panel:#5b5852; --edge:#9fb1ba; --ghost:#46545b; color-scheme:dark}
 html,body{height:100%}
 body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:15px;display:flex;flex-direction:column;overflow:hidden}
-.strip{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 16px;background:var(--brand);color:#cfe9f5;font-size:13px;letter-spacing:.06em;text-transform:uppercase;border-bottom:3px solid var(--cyan)}
+.strip{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 16px;background:var(--brand);color:#cfe9f5;font-size:13px;letter-spacing:.06em;text-transform:uppercase;border-bottom:3px solid var(--cyan)}
 .strip b{color:#ffffff;font-weight:600}
 #stage{flex:1;min-height:0;position:relative;background:var(--stage);touch-action:none}
 #stage canvas{display:block;width:100%;height:100%}
 .views{position:absolute;top:12px;right:12px;left:12px;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px}
-.views button{font:500 13px var(--display);letter-spacing:.04em;padding:8px 12px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer}
-.views button[aria-pressed="true"]{background:var(--brand);color:#fff;border-color:var(--brand)}
+.views button{font:500 13px var(--display);letter-spacing:.04em;padding:8px 12px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer;min-height:38px}
+.views button[aria-pressed="true"]{background:var(--cyan);color:#00141b;border-color:var(--cyan);font-weight:700}
 .views button:hover{border-color:var(--mid)}
 .views button:focus-visible{outline:2px solid var(--hi);outline-offset:2px}
 .card{background:var(--card);border-top:1px solid var(--line);padding:14px 16px calc(16px + env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:auto 1fr;gap:4px 16px;align-items:center}
@@ -82,7 +84,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
 .crumbs a:hover{text-decoration:underline}
 .crumbs b{color:var(--fg);font-weight:600}
 .hhead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:4px 0 14px}
-.home h1{font-size:30px;line-height:1.1;margin:0;color:var(--brand);font-weight:700;letter-spacing:-.005em}
+.home h1{font-size:30px;line-height:1.1;margin:0;color:var(--cyan);font-weight:700;letter-spacing:-.005em}
 :root[data-theme="dark"] .home h1{color:var(--fg)}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .home h1{color:var(--fg)}}
 .hcount{color:var(--muted);font-size:14px}
@@ -98,12 +100,12 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
 .jcard .no{grid-row:span 3;background:var(--brand);color:#fff;font:600 14px var(--mono);border-radius:6px;padding:8px;min-width:68px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px}
 .jcard.folder .no{background:var(--mid)}
 .jcard .no.none{background:var(--line);color:var(--muted)}
-.jcard .no.room{background:var(--pale);color:var(--brand);border:1px solid var(--line);min-width:48px;font-family:var(--display)}
+.jcard .no.room{background:var(--pale);color:var(--cyan);border:1px solid var(--line);min-width:48px;font-family:var(--display)}
 .fico{display:block;width:22px;height:16px;border-radius:2px 3px 3px 3px;background:#fff;opacity:.9;position:relative;margin-top:2px}
 .fico::before{content:"";position:absolute;left:0;top:-4px;width:10px;height:5px;border-radius:2px 2px 0 0;background:#fff}
 .jcard .nm{font-size:18px;font-weight:600;line-height:1.2;min-width:0;overflow-wrap:anywhere;padding-right:64px}
 .jcard .rooms{display:flex;flex-wrap:wrap;gap:4px}
-.jcard .rooms em{font-style:normal;font-size:12px;font-weight:600;color:var(--brand);background:var(--pale);border:1px solid var(--line);border-radius:999px;padding:2px 8px}
+.jcard .rooms em{font-style:normal;font-size:12px;font-weight:600;color:var(--cyan);background:var(--pale);border:1px solid var(--line);border-radius:999px;padding:2px 8px}
 .jcard .mt{color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
 .nbadge{position:absolute;top:12px;right:12px;background:var(--cyan);color:#00212e;font-size:12px;font-weight:700;border-radius:999px;padding:3px 8px}
 .home .empty{color:var(--muted);padding:24px 4px;text-align:center}
@@ -113,7 +115,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
 .sbtn{font:600 13px var(--display);padding:7px 12px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer;text-decoration:none;white-space:nowrap}
 .sbtn:hover{border-color:var(--mid);color:var(--mid)}
 .fnotes{margin-top:22px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
-.fnotes h2,.sets h2{font-size:18px;margin:0 0 10px;color:var(--brand)}
+.fnotes h2,.sets h2{font-size:18px;margin:0 0 10px;color:var(--cyan)}
 .fnotes h2 small,.sets h2 small{font-size:13px;color:var(--muted);font-weight:500;margin-left:6px}
 .nform textarea{width:100%;font:500 15px var(--display);padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);resize:vertical}
 .nrow{display:flex;gap:8px;margin:8px 0 12px}
@@ -161,7 +163,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
 .scanbtn:hover{background:#2bbbe4}
 .scanbtn:focus-visible{outline:2px solid #ffffff;outline-offset:2px}
 .tunebox{position:fixed;right:8px;bottom:8px;z-index:61;width:min(300px,calc(100% - 16px));padding:10px 12px;border-radius:10px;background:var(--card);border:1px solid var(--line);box-shadow:0 8px 30px rgba(0,0,0,.2);display:grid;gap:8px;font-size:14px}
-.tunebox b{color:var(--brand)}
+.tunebox b{color:var(--cyan)}
 .tunebox label{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .tunebox input[type=range]{flex:1 1 100%;accent-color:var(--mid);height:28px}
 .tunebox input[type=checkbox]{width:20px;height:20px;accent-color:var(--mid)}
@@ -199,16 +201,52 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
 .fpgrid h4{grid-column:1/-1;margin:6px 0 0;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
 .fprow{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:12px;font-size:13px;color:var(--muted)}
 .fprow input{width:34px;height:28px;padding:0;border:1px solid var(--line);border-radius:6px;vertical-align:middle;margin-left:6px}
+/* toolbar in groups: view · walls · cabinets · tools ... Back on the right */
+.views{justify-content:flex-start;gap:8px;align-items:center}
+.vg{display:flex;gap:4px;padding:4px;border-radius:9px;background:rgba(16,20,23,.72);border:1px solid var(--line);backdrop-filter:blur(4px)}
+.vg:not(:has(> :not([hidden]))){display:none}
+.vg.vright{margin-left:auto;background:none;border:0;padding:0}
+.vback{background:var(--cyan)!important;border-color:var(--cyan)!important;color:#00141b!important;font-weight:700!important;padding:10px 16px!important}
+.velev span{min-width:92px;text-align:center;align-self:center;font-weight:600;font-size:13px;color:var(--fg);padding:0 4px;white-space:nowrap}
+.velev button{min-width:38px}
+.vcap{font-style:normal;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);align-self:center;padding:0 2px 0 6px}
+.roomnav{display:flex;align-items:center;gap:6px;margin:0 auto;font-weight:700;color:#fff;text-transform:none;letter-spacing:.02em;font-size:15px}
+.roomnav a{display:inline-flex;align-items:center;justify-content:center;width:40px;height:34px;border-radius:6px;border:1px solid #2b3a42;color:#fff;font-size:22px;cursor:pointer;text-decoration:none}
+.roomnav a:hover{border-color:var(--cyan);color:var(--cyan)}
+.roomnav a[aria-disabled="true"]{opacity:.3;pointer-events:none}
+.roomnav span{min-width:120px;text-align:center}
+/* side lists: cabinets of the room (right), parts of an isolated cabinet (left) */
+.sidelist{position:absolute;top:62px;right:12px;width:min(270px,44%);max-height:calc(100% - 200px);overflow:auto;background:rgba(16,20,23,.94);border:1px solid var(--line);border-radius:10px;padding:8px 10px;z-index:2;font-size:14px}
+.sidelist.left{right:auto;left:12px;width:min(430px,60%)}
+.slhead{display:flex;justify-content:space-between;align-items:center;position:sticky;top:-8px;background:inherit;padding:2px 0 6px}
+.slhead b{color:var(--cyan);font-size:15px}
+.slx{font:600 18px var(--display);width:34px;height:30px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer}
+.slnote{margin:0 0 6px;font-size:12px;color:var(--muted)}
+.sidelist ol{list-style:none;margin:0;padding:0;display:grid;gap:3px}
+.sidelist li button{width:100%;display:grid;grid-template-columns:44px 1fr;gap:8px;align-items:center;text-align:left;font:500 14px var(--display);padding:7px 8px;border-radius:6px;border:1px solid transparent;background:var(--card);color:var(--fg);cursor:pointer;min-height:38px}
+.sidelist li button b{font:700 15px var(--mono);color:var(--cyan)}
+.sidelist li button[aria-pressed="true"]{border-color:var(--cyan);background:#0d2630}
+.sidelist h4{margin:8px 0 3px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.sidelist table{width:100%;border-collapse:collapse;font-size:13px}
+.sidelist th{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:4px;border-bottom:1px solid var(--line)}
+.sidelist td{padding:6px 4px;border-bottom:1px solid var(--line);vertical-align:top}
+.sidelist td:first-child{font:700 14px var(--mono);color:var(--cyan);text-align:center}
+.sidelist td.sz{font-family:var(--mono);font-size:12px;white-space:nowrap}
+.sidelist tbody tr{cursor:pointer}
+.sidelist tbody tr:hover,.sidelist tbody tr.on{background:#0d2630}
+.slopen{position:absolute;top:62px;right:12px;z-index:2;font:600 13px var(--display);padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:rgba(16,20,23,.9);color:var(--fg);cursor:pointer}
+.slopen.left{right:auto;left:12px}
+.brandlogo{height:30px;width:30px;vertical-align:middle;margin-right:8px;border-radius:4px}
 /* measure + section + notes */
 .views button#vNotes{border-color:var(--cyan)}
 .views button#vNotes[aria-pressed="true"]{background:var(--mid);border-color:var(--mid);color:#fff}
 .npanel{position:absolute;right:12px;top:58px;max-height:calc(100% - 70px);width:min(380px,calc(100% - 24px));overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px 12px;box-shadow:0 8px 30px rgba(0,0,0,.15);z-index:3;font-size:14px}
 .npanel .mh{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;position:sticky;top:-10px;background:var(--card);padding:4px 0}
-.npanel .mh b{font-size:16px;color:var(--brand)}
+.npanel .mh b{font-size:16px;color:var(--cyan)}
 .npanel .mh small{font-weight:500;color:var(--muted);font-size:12px}
 .npanel button:not(.pbtn):not(.ngo){font:500 13px var(--display);padding:6px 10px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer;min-height:32px}
 .npanel button.go{background:var(--mid)!important;border-color:var(--mid)!important;color:#fff!important}
-.nhint{margin:0 0 8px;padding:8px;border-radius:8px;background:var(--pale);color:var(--brand);font-weight:600;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.nhint{margin:0 0 8px;padding:8px;border-radius:8px;background:var(--pale);color:var(--cyan);font-weight:600;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .nwhere{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
 .npanel .nform textarea{width:100%;font:500 15px var(--display);padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);resize:vertical}
 .npanel .nrow{display:flex;gap:6px;margin:8px 0 12px}
@@ -236,7 +274,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
 </style>
 
 </head><body>
-<div class="strip"><span><a href="./" id="backLink" title="All jobs">&lsaquo; Jobs</a> · <b id="job">–</b> · <span id="room">Room 1</span></span><span class="right"><button type="button" class="scanbtn" data-scan>Scan</button><span id="count"></span></span></div>
+<div class="strip"><span><a href="./" id="backLink" title="All jobs"><img class="brandlogo" src="logo-mark.png" alt="">&lsaquo; Jobs</a> · <b id="job">–</b> · <span id="room">Room 1</span></span><nav class="roomnav" id="roomNav" hidden aria-label="Rooms in this job"><a id="roomPrev" aria-label="Previous room">&lsaquo;</a><span id="roomName"></span><a id="roomNext" aria-label="Next room">&rsaquo;</a></nav><span class="right"><button type="button" class="scanbtn" data-scan>Scan</button><span id="count"></span></span></div>
 <main class="home" id="home" hidden>
   <div class="in">
     <nav class="crumbs" id="crumbs" aria-label="Where you are" hidden></nav>
@@ -259,23 +297,45 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
   </div>
 </main>
 <div id="stage">
-  <div class="views" role="group" aria-label="View">
-    <button id="vCab" aria-pressed="true">Cabinet</button>
-    <button id="vJob" aria-pressed="false">Whole job</button>
-    <button id="vSolid" aria-pressed="true" title="Show everything solid">Solid</button>
-    <button id="vMulti" aria-pressed="false" title="Pick several cabinets to view together">Select cabs</button>
-    <button id="vGo" hidden>Isolate</button>
-    <button id="vSee" aria-pressed="false" hidden title="See-through view">See-through</button>
-    <button id="vExplode" aria-pressed="false" hidden>Explode</button>
-    <button id="vDims" aria-pressed="false" hidden title="Show the cabinet's width, height and depth">Dims</button>
-    <button id="vPrev" hidden title="Previous cabinet">&lsaquo; Prev</button>
-    <button id="vNext" hidden title="Next cabinet">Next &rsaquo;</button>
-    <button id="vBack" hidden>Back to job</button>
-    <button id="vLayers" aria-pressed="false" title="Show or hide cabinets, materials and parts">Show / hide</button>
-    <button id="vMeasure" aria-pressed="false" title="Measure between two points (snaps to corners and edges)">Measure</button>
-    <button id="vSection" aria-pressed="false" title="Cut through the model to see inside">Section</button>
-    <button id="vNotes" aria-pressed="false" title="The team's notes on this job">Notes</button>
+  <div class="views" role="toolbar" aria-label="View">
+    <div class="vg" role="group" aria-label="View">
+      <button id="vCab" aria-pressed="true">Cabinet</button>
+      <button id="vJob" aria-pressed="false">Whole job</button>
+      <button id="vSolid" aria-pressed="true" title="Solid, or see-through outlines">Solid</button>
+      <button id="vSee" aria-pressed="false" hidden title="See-through view">See-through</button>
+    </div>
+    <div class="vg velev" id="vElev" role="group" aria-label="Wall elevations" hidden>
+      <i class="vcap">Walls</i><button id="vElPrev" aria-label="Previous wall">&lsaquo;</button><span id="vElName">3D</span><button id="vElNext" aria-label="Next wall">&rsaquo;</button>
+    </div>
+    <div class="vg" role="group" aria-label="Cabinets">
+      <button id="vMulti" aria-pressed="false" title="Pick several cabinets to view together">Select cabs</button>
+      <button id="vGo" hidden>Isolate</button>
+      <button id="vPrev" hidden title="Previous cabinet">&lsaquo; Prev</button>
+      <button id="vNext" hidden title="Next cabinet">Next &rsaquo;</button>
+      <button id="vExplode" aria-pressed="false" hidden>Explode</button>
+      <button id="vDims" aria-pressed="false" hidden title="Show the cabinet's width, height and depth">Dims</button>
+    </div>
+    <div class="vg" role="group" aria-label="Tools">
+      <button id="vLayers" aria-pressed="false" title="Show or hide cabinets, materials and parts">Show / hide</button>
+      <button id="vMeasure" aria-pressed="false" title="Measure between two points (snaps to corners and edges)">Measure</button>
+      <button id="vSection" aria-pressed="false" title="Cut through the model to see inside">Section</button>
+      <button id="vNotes" aria-pressed="false" title="The team's notes on this job">Notes</button>
+    </div>
+    <div class="vg vright" role="group" aria-label="Back">
+      <button id="vBack" class="vback" hidden>&lsaquo; Back to job</button>
+    </div>
   </div>
+  <aside class="sidelist" id="cabList" hidden aria-label="Cabinets in this room">
+    <div class="slhead"><b>Cabinets</b><button type="button" class="slx" id="cabListX" aria-label="Hide the cabinet list">&rsaquo;</button></div>
+    <p class="slnote">Tap to find it · double-tap to open it</p>
+    <ol id="cabListBody"></ol>
+  </aside>
+  <button type="button" class="slopen" id="cabListOpen" hidden>Cabinets &lsaquo;</button>
+  <aside class="sidelist left" id="cutList" hidden aria-label="Parts in this cabinet">
+    <div class="slhead"><b id="cutListTitle">Parts</b><button type="button" class="slx" id="cutListX" aria-label="Hide the parts list">&lsaquo;</button></div>
+    <table><thead><tr><th>Qty</th><th>Part</th><th>Size</th><th>Material</th></tr></thead><tbody id="cutListBody"></tbody></table>
+  </aside>
+  <button type="button" class="slopen left" id="cutListOpen" hidden>&rsaquo; Parts</button>
   <div class="hint" id="hint"></div>
   <div class="loupe" id="loupe" hidden aria-hidden="true"></div>
   <section class="mpanel" id="mpanel" hidden aria-label="Measure">
@@ -540,7 +600,7 @@ function niceDate(u){
 const plural = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
 // ---- dashboard: all jobs (folders), one folder (its rooms + notes), or settings (PIN)
 function brandStrip(extra){
-  document.querySelector('.strip').innerHTML = '<span class="brandmark"><a href="./"><b>CN Fitouts</b> · Part Finder</a>' + (extra || '') + '</span>' +
+  document.querySelector('.strip').innerHTML = '<span class="brandmark"><a href="./"><img class="brandlogo" src="logo-mark.png" alt=""><b>CN Fitouts</b> · Part Finder</a>' + (extra || '') + '</span>' +
     '<span class="right"><button type="button" class="scanbtn" data-scan>Scan</button><a class="setlink" href="?settings" title="Settings (PIN)">Settings</a></span>';
 }
 async function home(focus){
@@ -774,7 +834,7 @@ const LITE = (() => { if (TUNE && typeof TUNE.lite === 'boolean') return TUNE.li
   const q = (location.search.match(/[?&]q=(high|mid|low)\b/) || [])[1];
   if (/[?&]lite\b/.test(location.search) || q === 'low') return true; if (q || /[?&]bench\b/.test(location.search)) return false;
   try { const s = JSON.parse(localStorage.getItem('pf-quality') || 'null'); return !!(s && s.steps >= 4); } catch (_) { return false; } })();
-const renderer = new THREE.WebGLRenderer({antialias: TUNE && typeof TUNE.aa === 'boolean' ? TUNE.aa : !LITE, logarithmicDepthBuffer: PHONE && !LITE, precision: 'highp', powerPreference: PHONE ? 'low-power' : 'high-performance'});
+const renderer = new THREE.WebGLRenderer({antialias: TUNE && typeof TUNE.aa === 'boolean' ? TUNE.aa : true, logarithmicDepthBuffer: PHONE && !LITE, precision: 'highp', powerPreference: PHONE ? 'low-power' : 'high-performance'});
 renderer.setPixelRatio(Math.min(devicePixelRatio, PHONE ? 1.25 : 1.5));   // (2x on a high-res screen: 4x the pixels for little gain)
 stage.prepend(renderer.domElement);
 const scene = new THREE.Scene();
@@ -1167,7 +1227,7 @@ function paint(){
   for (const x of parts){
     if ((picking && pickSet.has(x.p.g)) || (!picking && selCab !== null && x.p.g === selCab)){ setLook(x, 1, hi, solid ? 0 : 1, null); for (const m of x.meshes) m.material.color.lerp(hi, picking ? .7 : .45); }
     else if (solid) setLook(x, 1, x === sel ? hi : edge, x === sel ? 1 : 0, x === sel ? hi : null);   // solid: no outline lines
-    else if (!sel) setLook(x, 1, edge, .35);
+    else if (!sel) setLook(x, .1, edge, .9);                  // see-through: outlines over a faint ghost
     else if (x === sel) setLook(x, 1, hi, 1, hi);
     else if (x.p.g === sel.p.g) setLook(x, .3, edge, .5);
     else setLook(x, .06, ghost, .08);
@@ -1176,7 +1236,7 @@ function paint(){
     if (h.p.k === 'wall'){ for (const m of h.meshes) m.material.opacity = h.fade; continue; }
     const near = sel && h.p.g === sel.p.g;
     if (solid) setLook(h, 1, edge, 0);
-    else setLook(h, !sel ? 1 : near ? .3 : .05, edge, !sel ? .35 : near ? .4 : .05);
+    else setLook(h, !sel ? .08 : near ? .3 : .05, edge, !sel ? .5 : near ? .4 : .05);
   }
 }
 
@@ -1429,6 +1489,7 @@ function jobFront(){
   return c.addScaledVector(n.normalize(), 1000);
 }
 function reframe(){
+  if (typeof elevI !== 'undefined' && elevI >= 0){ elevI = -1; camera.fov = ORBIT_FOV; camera.updateProjectionMatrix(); elevLabel(); }
   if (iso !== null){
     const cab = parts.filter(x => isoGs.has(x.p.g));
     // frame the cabinet's own body: long shared parts it happens to own (a rangehood's 2.7 m underpanel)
@@ -1478,7 +1539,7 @@ function show(x){
 // whole job: a tap picks a cabinet (never a single part) and shows its number, name and size
 function showCab(g){
   selCab = g === undefined ? null : g; sel = null;
-  if (selCab === null){ show(null); return; }
+  if (selCab === null){ show(null); sideLists(); return; }
   try { if (location.hash) history.replaceState(null, '', location.pathname + location.search); } catch (_) {}
   const c = CABS[g] || {}, no = cabNoOf(g);
   $('card').classList.remove('empty'); delete $('card').dataset.msg; infoClosed = false;
@@ -1488,7 +1549,7 @@ function showCab(g){
   const n = parts.filter(x => x.p.g === g && x.p.id).length;
   $('pspecs').innerHTML = (c.whd ? '<span>W <b>' + fmt(c.whd[0]) + '</b> · H <b>' + fmt(c.whd[1]) + '</b> · D <b>' + fmt(c.whd[2]) + '</b> mm</span>' : '') +
     '<span>' + n + ' cut-list parts</span>';
-  updateCard(); paint();
+  updateCard(); paint(); sideLists();
 }
 
 function fromHash(){
@@ -1553,6 +1614,8 @@ function isolate(g){
   updateCard();
   hintText(); paint();
   if (!$('sheet').hidden) buildSheet();
+  $('vElev').hidden = on || !elevs.length;
+  sideLists();
   requestAnimationFrame(() => { resize(); reframe(); });
 }
 $('vExplode').onclick = () => { exTarget = exTarget ? 0 : 1; $('vExplode').setAttribute('aria-pressed', !!exTarget);
@@ -1577,6 +1640,113 @@ $('vCab').onclick = () => setView('cab');
 $('vJob').onclick = () => setView('job');
 function setSolid(v){ solid = v; $('vSolid').setAttribute('aria-pressed', solid); hintText(); paint(); }
 $('vSolid').onclick = () => setSolid(!solid);
+// ---- side lists: the room's cabinets (right) and an isolated cabinet's parts (left) ----
+const slOpen = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : v === '1'; } catch (_) { return d; } };
+const slSet = (k, v) => { try { localStorage.setItem(k, v ? '1' : '0'); } catch (_) {} };
+let cabListOn = slOpen('pf-cablist', true), cutListOn = slOpen('pf-cutlist', true), cabTap = {g: null, t: 0};
+function buildCabList(){
+  const ol = $('cabListBody'); ol.innerHTML = '';
+  let lastT = null;
+  const types = ['base', 'upper', 'tall', 'bench', 'panel'];       // (grouped by kind, numbers in order within each)
+  const order = cabOrder().filter(g => typeOf(g) !== 'toe').sort((a, b) => (types.indexOf(typeOf(a)) + 9) % 9 - (types.indexOf(typeOf(b)) + 9) % 9);
+  for (const g of order){
+    const t = typeOf(g);
+    if (t !== lastT){ const h = document.createElement('h4'); h.textContent = TYPE_NAMES[t] || 'Cabinets'; ol.appendChild(h); lastT = t; }
+    const li = document.createElement('li'), b = document.createElement('button');
+    b.type = 'button'; b.dataset.g = g;
+    b.innerHTML = '<b></b><span></span>'; b.querySelector('b').textContent = cabNoOf(g) || '–'; b.querySelector('span').textContent = (CABS[g] || {}).n || 'Cabinet';
+    b.onclick = () => {
+      const now = performance.now();
+      if (cabTap.g === g && now - cabTap.t < 400){ cabTap = {g: null, t: 0}; isolate(g); return; }   // double-tap: open it
+      cabTap = {g, t: now}; showCab(selCab === g ? null : g);                                          // tap: light it up in the room
+    };
+    li.appendChild(b); ol.appendChild(li);
+  }
+}
+function buildCutList(){
+  const rows = new Map();
+  for (const x of parts){
+    if (!isoGs.has(x.p.g) || !x.p.id) continue;
+    const p = x.p, t = Number.isFinite(p.thick) ? Math.round(p.thick) : '';
+    const mat = p.material || (x.meshes[0] && matName(x.meshes[0].userData.mi)) || '';
+    const size = Math.round(p.L) + ' × ' + Math.round(p.W) + (t ? ' × ' + t : '');
+    const k = partLabel(x) + '|' + size + '|' + mat;
+    if (!rows.has(k)) rows.set(k, {name: partLabel(x), size, mat, xs: []});
+    rows.get(k).xs.push(x);
+  }
+  const list = [...rows.values()].sort((a, b) => a.name.localeCompare(b.name) || b.size.localeCompare(a.size));
+  const total = list.reduce((n, r) => n + r.xs.length, 0);
+  $('cutListTitle').textContent = $('room').textContent + ' · ' + total + ' parts';
+  const tb = $('cutListBody'); tb.innerHTML = '';
+  for (const r of list){
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td></td><td></td><td class="sz"></td><td></td>';
+    const td = tr.children; td[0].textContent = r.xs.length; td[1].textContent = r.name; td[2].textContent = r.size; td[3].textContent = r.mat;
+    tr.title = 'Part ' + r.xs.map(x => x.p.id).join(', ');
+    tr.onclick = () => { tb.querySelectorAll('tr.on').forEach(q => q.classList.remove('on')); tr.classList.add('on');
+      const i = r.xs.indexOf(tipSel); showTip(r.xs[(i + 1) % r.xs.length]); };   // (tap again: the next one of the same)
+    tb.appendChild(tr);
+  }
+  if (!list.length) tb.innerHTML = '<tr><td colspan="4">No cut-list parts in this cabinet</td></tr>';
+}
+function sideLists(){
+  const quiet = $('npanel').hidden && !measuring && $('spanel').hidden;     // (measuring / cutting: the model needs the room)
+  const room = iso === null && !picking && quiet;
+  $('cabList').hidden = !(room && cabListOn); $('cabListOpen').hidden = !(room && !cabListOn);
+  const cab = iso !== null && quiet;
+  if (cab && cutListOn) buildCutList();
+  $('cutList').hidden = !(cab && cutListOn); $('cutListOpen').hidden = !(cab && !cutListOn);
+  $('cabListBody').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.g === selCab)));
+}
+$('cabListX').onclick = () => { cabListOn = false; slSet('pf-cablist', false); sideLists(); };
+$('cabListOpen').onclick = () => { cabListOn = true; slSet('pf-cablist', true); sideLists(); };
+$('cutListX').onclick = () => { cutListOn = false; slSet('pf-cutlist', false); sideLists(); };
+$('cutListOpen').onclick = () => { cutListOn = true; slSet('pf-cutlist', true); sideLists(); };
+buildCabList();
+
+// ---- wall elevations: arrows step round the room, looking square-on at each wall's cabinets ----
+const ORBIT_FOV = camera.fov, ELEV_FOV = 14;
+var elevI = -1;
+const elevs = (() => {
+  const dirs = [new THREE.Vector3(1, 0, 0), new THREE.Vector3(-1, 0, 0), new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, -1)], by = new Map();
+  for (const g of cabOrder()){
+    if (typeOf(g) === 'toe') continue;
+    const cab = parts.filter(x => x.p.g === g), f = cabFront(cab); if (!f) continue;
+    const d = f.clone().sub(boxOf(cab).getCenter(new THREE.Vector3())); d.y = 0; if (d.length() < 1) continue; d.normalize();
+    let bi = -1, best = 0.7; dirs.forEach((v, i) => { const k = v.dot(d); if (k > best){ best = k; bi = i; } });
+    if (bi < 0) continue;
+    if (!by.has(bi)) by.set(bi, []); by.get(bi).push(g);
+  }
+  const mid = boxOf(parts).getCenter(new THREE.Vector3());
+  return [...by].map(([i, gs]) => {
+    const items = parts.concat(hardware.filter(h => h.p.k !== 'wall' && h.p.k !== 'room')).filter(x => gs.includes(x.p.g));
+    const box = boxOf(items), c = box.getCenter(new THREE.Vector3());
+    return {n: dirs[i], gs, box, ang: Math.atan2(c.z - mid.z, c.x - mid.x)};
+  }).sort((a, b) => a.ang - b.ang);
+})();
+function elevLabel(){
+  if (elevI < 0){ $('vElName').textContent = '3D'; return; }
+  const nos = elevs[elevI].gs.map(cabNoOf).filter(Boolean).map(Number).filter(n => !isNaN(n)).sort((a, b) => a - b);
+  $('vElName').textContent = 'Wall ' + (elevI + 1) + '/' + elevs.length + (nos.length ? ' · ' + (nos.length > 1 ? nos[0] + '–' + nos[nos.length - 1] : nos[0]) : '');
+}
+function goElev(i){
+  if (!elevs.length) return;
+  if (i >= elevs.length) i = -1; if (i < -1) i = elevs.length - 1;
+  if (i < 0){ elevI = -1; camera.fov = ORBIT_FOV; camera.updateProjectionMatrix(); elevLabel(); reframe(); return; }
+  elevI = i; const e = elevs[i], size = e.box.getSize(new THREE.Vector3()), c = e.box.getCenter(new THREE.Vector3());
+  const w = e.n.x ? size.z : size.x, depth = e.n.x ? size.x : size.z, h = size.y;
+  camera.fov = ELEV_FOV; camera.updateProjectionMatrix();
+  const vf = THREE.MathUtils.degToRad(ELEV_FOV) / 2, hf = Math.atan(Math.tan(vf) * camera.aspect);
+  const dist = Math.max(h * 0.56 / Math.tan(vf), w * 0.54 / Math.tan(hf), 1500);
+  camera.position.copy(c).addScaledVector(e.n, depth / 2 + dist);
+  camera.near = Math.max(20, dist - 400);              // anything between the camera and these cabinets (an island) is cut away
+  camera.far = dist + depth + 8000; camera.updateProjectionMatrix();
+  controls.target.copy(c); controls.update(); elevLabel(); forceFrame = true;
+}
+$('vElPrev').onclick = () => goElev(elevI - 1);
+$('vElNext').onclick = () => goElev(elevI + 1);
+controls.addEventListener('start', () => { if (elevI >= 0){ camera.near = Math.max(20, camera.position.distanceTo(controls.target) / 200); camera.updateProjectionMatrix(); } });
+$('vElev').hidden = !elevs.length;
 
 // tap: open a door/drawer (Solid or isolated) or pick a part; double-tap: isolate that cabinet
 const ray = new THREE.Raycaster(); let down = null, lastTap = null, tapTimer = null;
@@ -1632,7 +1802,7 @@ function setPicking(on){
   $('vMulti').setAttribute('aria-pressed', on); $('vMulti').textContent = on ? 'Cancel' : 'Select cabs';
   if (on) for (const mv of movers) mv.target = 0;
   updateCard();
-  hintText(); updatePick();
+  hintText(); updatePick(); sideLists();
 }
 $('vMulti').onclick = () => setPicking(!picking);
 $('vGo').onclick = () => { if (pickSet.size) isolate([...pickSet]); };
@@ -1818,6 +1988,7 @@ function openNotes(open){
   $('npanel').hidden = !open; $('vNotes').setAttribute('aria-pressed', open);
   if (open){ openSheet(false); if (measuring) setMeasuring(false); openSection(false); $('card').hidden = true; $('tip').hidden = true; listNotes(); }
   else { setCommenting(false); closeNoteEditor(); updateCard(); }
+  sideLists();
 }
 function setCommenting(on){
   commenting = on; $('nHint').hidden = !on; $('nAdd').hidden = on || !$('nEdit').hidden;
@@ -1865,7 +2036,13 @@ $('nEdit').onsubmit = async ev => {
   if (e){
     FOLDER = folderOf(e);
     const f = buildFolders(jobs).get(FOLDER) || buildFolders(jobs, null, true).get(FOLDER);
-    if (f && f.entries.length > 1){ $('backLink').href = '?f=' + encodeURIComponent(FOLDER); $('backLink').textContent = '‹ ' + (f.number || 'Job'); }
+    if (f && f.entries.length > 1){
+      $('backLink').href = '?f=' + encodeURIComponent(FOLDER); $('backLink').lastChild.textContent = '‹ ' + (f.number || 'Job');
+      // rooms of the job: arrows either side of the room's name
+      const i = f.entries.findIndex(x => x.key === ENTRY), go = d => '?j=' + encodeURIComponent(f.entries[(i + d + f.entries.length) % f.entries.length].key);
+      if (i >= 0){ $('roomName').textContent = entryShort(f.entries[i], f) + ' · ' + (i + 1) + '/' + f.entries.length;
+        $('roomPrev').href = go(-1); $('roomNext').href = go(1); $('roomNav').hidden = false; }
+    }
   }
   await loadNotes();
   const want = Q.get('note');
@@ -1971,6 +2148,7 @@ function openSection(open){
   secLines.visible = open;
   if (open){ openSheet(false); if (measuring) setMeasuring(false); if (commenting) setCommenting(false); $('card').hidden = true; $('hint').hidden = true; }
   else { $('hint').hidden = false; updateCard(); }
+  sideLists();
 }
 for (const k of Object.keys(SEC)){
   $('s' + k).addEventListener('input', applySection);
@@ -2159,7 +2337,7 @@ function setMeasuring(on){
       : 'Click two points · snaps to corners, edge middles and edges · Shift for a free (angled) line · zoom in for small parts'; }
   else { mFirst = null; hideHover(); hideLoupe(); hintText(); updateCard(); }
   if (TOUCH) controls.enableRotate = !on;          // one finger picks points; two fingers still move the view
-  $('hint').hidden = on; drawMeasures();
+  $('hint').hidden = on; drawMeasures(); sideLists();
 }
 $('vMeasure').onclick = () => setMeasuring(!measuring);
 $('mDone').onclick = () => setMeasuring(false);
@@ -2374,7 +2552,7 @@ function render(t){
 }
 new ResizeObserver(() => { aoSize(); markDirty(); }).observe(stage); aoSize();
 
-resize(); hintText(); fromHash();
+resize(); hintText(); fromHash(); sideLists();
 // ---- speed on this computer: the first time Part Finder opens a job here it times real frames (the worst case:
 // shadows redrawn too) and steps quality down until a frame takes under ~25 ms - soft shading off, normal sharpness,
 // smaller shadows, no shadows, lower sharpness. The result is kept for this computer, so later jobs (every scan)
