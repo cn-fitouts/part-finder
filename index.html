@@ -242,6 +242,14 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
 .slopen{position:absolute;top:64px;right:12px;z-index:2;font:600 13px var(--display);padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:rgba(16,20,23,.9);color:var(--fg);cursor:pointer}
 .slopen.left{right:auto;left:12px}
 .brandlogo{height:30px;width:30px;vertical-align:middle;margin-right:8px;border-radius:4px}
+/* parts list extras */
+.sidelist tr.nocut td{color:#ff6b6b}
+.sidelist tr.nocut td:first-child{color:#ff6b6b}
+.sidelist tr.mh.warn td{background:#3a1416;color:#ff8a8a}
+.sidelist tr.hidrow td{padding:6px 4px}
+.sidelist tr.hwr small{color:var(--muted);font-size:11px}
+.sidelist tr.hidrow button,.tacts button{font:600 13px var(--display);padding:7px 12px;border-radius:6px;border:1px solid var(--cyan);background:var(--card);color:var(--cyan);cursor:pointer}
+.tacts{grid-column:1/-1;display:flex;gap:6px;margin-top:8px}
 /* job PDFs */
 .docbtns{display:flex;gap:4px;margin-right:6px}
 .docbtns button{font:600 12px var(--display);letter-spacing:.04em;text-transform:uppercase;padding:7px 10px;border-radius:6px;border:1px solid #2b3a42;background:#0b1114;color:#e6f4fa;cursor:pointer;min-height:34px}
@@ -254,7 +262,10 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
 .dvz{display:flex;align-items:center;gap:4px}
 .dvz span{min-width:48px;text-align:center;font:600 13px var(--mono);color:var(--muted)}
 .dvbar .dvclose{background:var(--cyan);border-color:var(--cyan);color:#00141b}
-.dvbody{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;align-items:center;gap:12px;-webkit-overflow-scrolling:touch}
+.dvbody{position:relative;flex:1;overflow:auto;padding:12px;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y}
+.dvpages{display:flex;flex-direction:column;align-items:center;gap:12px;width:max-content;min-width:100%;margin:0 auto}
+.dvpg{min-width:64px!important}
+.dv3d{position:absolute;top:10px;right:10px;font:700 14px var(--display);padding:10px 14px;border-radius:8px;border:0;background:var(--cyan);color:#00141b;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.4)}
 .dvpage{background:#fff;box-shadow:0 2px 12px rgba(0,0,0,.5);position:relative;flex:none}
 .dvpage span{position:absolute;left:50%;top:40%;transform:translateX(-50%);color:#999;font:600 14px var(--display)}
 .dvmsg{margin:40px auto;max-width:520px;text-align:center;color:var(--fg);font-size:17px;line-height:1.5}
@@ -426,6 +437,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
     <div class="where" id="twhere"></div>
     <div class="specs" id="tspecs"></div>
     <div class="note" id="tnote" hidden></div>
+    <div class="tacts" id="tActs" hidden><button type="button" id="tHide">Hide this part</button></div>
   </section>
   <section class="sheet" id="sheet" hidden aria-label="Show or hide">
     <div class="sheethead"><b id="sheetTitle">Show / hide</b><button type="button" id="sheetClose" aria-label="Close">Done</button></div>
@@ -448,6 +460,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
 
 <section class="docview" id="docView" hidden aria-label="Job PDF">
   <div class="dvbar"><b id="dvTitle"></b><select id="dvSel" aria-label="Which PDF" hidden></select>
+    <span class="dvz"><button type="button" id="dvPrev" aria-label="Previous page">&lsaquo;</button><span id="dvPage" class="dvpg"></span><button type="button" id="dvNext" aria-label="Next page">&rsaquo;</button></span>
     <span class="dvz"><button type="button" id="dvOut" aria-label="Zoom out">&minus;</button><span id="dvPct">100%</span><button type="button" id="dvIn" aria-label="Zoom in">+</button></span>
     <button type="button" id="dvUp">Upload PDF</button><input type="file" id="dvFile" accept="application/pdf" hidden>
     <button type="button" class="dvclose" id="dvClose">Close</button></div>
@@ -1701,7 +1714,7 @@ $('vExplode').onclick = () => { exTarget = exTarget ? 0 : 1; $('vExplode').setAt
 $('vSee').onclick = () => { isoSolid = !isoSolid; $('vSee').setAttribute('aria-pressed', !isoSolid); paint(); };
 // step through cabinets in cabinet-number order (cabinets with no number follow, in model order)
 function cabOrder(){
-  const gs = [...new Set(parts.map(x => x.p.g))].filter(g => g >= 0);
+  const gs = [...new Set(parts.map(x => x.p.g).concat(hardware.filter(h => h.p.k === 'hw' || h.p.k === 'panel').map(h => h.p.g)))].filter(g => g >= 0);   // (a kicker or panel with no cut-list part still counts)
   const num = g => { const n = parseInt(cabNoOf(g), 10); return isNaN(n) ? 1e9 + g : n; };
   return gs.sort((a, b) => num(a) - num(b));
 }
@@ -1724,12 +1737,8 @@ const slSet = (k, v) => { try { localStorage.setItem(k, v ? '1' : '0'); } catch 
 let cabListOn = slOpen('pf-cablist', true), cutListOn = slOpen('pf-cutlist', true), cabTap = {g: null, t: 0};
 function buildCabList(){
   const ol = $('cabListBody'); ol.innerHTML = '';
-  let lastT = null;
-  const types = ['base', 'upper', 'tall', 'bench', 'panel'];       // (grouped by kind, numbers in order within each)
-  const order = cabOrder().filter(g => typeOf(g) !== 'toe').sort((a, b) => (types.indexOf(typeOf(a)) + 9) % 9 - (types.indexOf(typeOf(b)) + 9) % 9);
-  for (const g of order){
-    const t = typeOf(g);
-    if (t !== lastT){ const h = document.createElement('h4'); h.textContent = TYPE_NAMES[t] || 'Cabinets'; ol.appendChild(h); lastT = t; }
+  // every cabinet the model has, kickers and panels too, in cabinet-number order (no groups)
+  for (const g of cabOrder()){
     const li = document.createElement('li'), b = document.createElement('button');
     b.type = 'button'; b.dataset.g = g;
     b.innerHTML = '<b></b><span></span>'; b.querySelector('b').textContent = cabNoOf(g) || '–'; b.querySelector('span').textContent = (CABS[g] || {}).n || 'Cabinet';
@@ -1794,9 +1803,10 @@ function bandShort(code){
   return n ? n + ' · ' + m[2].toUpperCase() : 'none';
 }
 function buildCutList(){
-  const byMat = new Map();
+  const byMat = new Map(), noCut = [];
   for (const x of parts){
-    if (!isoGs.has(x.p.g) || !x.p.id) continue;
+    if (!isoGs.has(x.p.g)) continue;
+    if (!x.p.id){ noCut.push(x); continue; }
     const p = x.p, t = Number.isFinite(p.thick) ? Math.round(p.thick) : '';
     const mat = p.material || (x.meshes[0] && matName(x.meshes[0].userData.mi)) || 'Other';
     const size = Math.round(p.L) + ' × ' + Math.round(p.W) + (t ? ' × ' + t : '');
@@ -1826,9 +1836,43 @@ function buildCutList(){
       tb.appendChild(tr);
     }
   }
+  // on the model but on no cut list (not nested for production): red, so it stands out
+  if (noCut.length){
+    head('Not on the cut list · ' + noCut.length);
+    tb.lastChild.classList.add('warn');
+    const rows = new Map();
+    for (const x of noCut){ const mat = (x.meshes[0] && matName(x.meshes[0].userData.mi)) || ''; const k = partLabel(x) + '|' + sizeOf(x) + '|' + mat;
+      if (!rows.has(k)) rows.set(k, {name: partLabel(x), size: sizeOf(x), mat, xs: []}); rows.get(k).xs.push(x); }
+    for (const r of rows.values()){
+      const tr = document.createElement('tr'); tr.className = 'nocut';
+      tr.innerHTML = '<td></td><td></td><td class="sz"></td><td colspan="2"></td>';
+      const td = tr.children; td[0].textContent = r.xs.length; td[1].textContent = r.name; td[2].textContent = r.size; td[3].textContent = r.mat;
+      tr.onclick = () => { const i = r.xs.indexOf(tipSel); showTip(r.xs[(i + 1) % r.xs.length]); };
+      tb.appendChild(tr);
+    }
+  }
+  // parts hidden in this cabinet: one tap brings them back
+  const hid = parts.concat(hardware).filter(x => isoGs.has(x.p.g) && hiddenParts.has(x));
+  if (hid.length){
+    const tr = document.createElement('tr'); tr.className = 'hidrow';
+    tr.innerHTML = '<td colspan="5"><button type="button">Show ' + hid.length + ' hidden part' + (hid.length > 1 ? 's' : '') + '</button></td>';
+    tr.querySelector('button').onclick = () => { hid.forEach(x => hiddenParts.delete(x)); applyVisibility(); shadowDirty = true; markDirty(); sideLists(); };
+    tb.insertBefore(tr, tb.firstChild);
+  }
   // hardware: drawers (from the drawers that open), hinges, handles, drawer systems, rails...
   const hw = new Map(), add = (name, n) => hw.set(name, (hw.get(name) || 0) + n);
   const drawers = movers.filter(mv => mv.m.t === 'drawer' && parts[mv.m.f] && isoGs.has(parts[mv.m.f].p.g));
+  const asm = iso !== null && isoGs.size === 1 ? asmByCab[String(cabNoOf(iso))] : null;
+  if (asm && asm.secs.length){                  // CV's assembly sheet names the real hardware: use it
+    head('Hardware · from the assembly sheet');
+    for (const it of asm.secs){
+      const tr = document.createElement('tr'); tr.className = 'hwr';
+      tr.innerHTML = '<td></td><td colspan="4"><span></span> <small></small></td>'; tr.children[0].textContent = it.q;
+      tr.querySelector('span').textContent = it.n; tr.querySelector('small').textContent = it.sec.replace(/s$/, '') + (it.sub ? ' · ' + it.sub : '');
+      tb.appendChild(tr);
+    }
+    return;
+  }
   for (const mv of drawers){ const d = drawerSpec(mv); add(d.name, 1); if (d.runners) add('Drawer runners (pair)', 1); }
   const doors = movers.filter(mv => mv.m.t === 'door' && !mv.m.fixed && parts[mv.m.f] && isoGs.has(parts[mv.m.f].p.g));
   if (doors.length) add('Door (opening)', doors.length);
@@ -2004,10 +2048,13 @@ function showTip(x){
   if (p.edges) bits.push('<span>' + esc(edgeText(p.edges)) + '</span>');
   $('tspecs').innerHTML = bits.join('');
   $('tnote').hidden = !p.comment; $('tnote').textContent = p.comment || '';
+  $('tActs').hidden = iso === null;
   $('tip').hidden = false; $('hint').hidden = true;
   paint();
 }
 $('tclose').onclick = () => showTip(null);
+// in an isolated cabinet: hide the tapped part (Show / hide, or the parts list's "Show hidden", brings it back)
+$('tHide').onclick = () => { const x = tipSel; if (!x) return; hiddenParts.add(x); showTip(null); applyVisibility(); shadowDirty = true; markDirty(); sideLists(); };
 
 // ---- dimensions: cabinet width above, height and depth on the side (CV's cabinet sizes) ----
 function dimLabel(text){
@@ -2204,14 +2251,14 @@ $('nEdit').onsubmit = async ev => {
 // ---- job PDFs: shop drawings, assembly sheets, hardware sheets. The sync publishes the ones saved next to the
 // job's DAE; any extra can be uploaded here (settings PIN) and are kept in the team's Google Drive.
 const DOC_T = {shop: 'Shop drawings', assembly: 'Assembly sheets', hardware: 'Hardware sheets'};
-let jobDocs = [], upDocs = [], docT = 'shop', docPdf = null, docZoom = 1, docObs = null, docCur = null;
+let jobDocs = [], upDocs = [], docT = 'shop', docPdf = null, docZoom = 1, docObs = null, docCur = null, folderEntries = [];
 const docsOf = t => jobDocs.filter(d => d.t === t).concat(upDocs.filter(d => d.t === t));
 function docButtons(){
   $('docBtns').hidden = false;
   $('docBtns').querySelectorAll('button').forEach(b => { const n = docsOf(b.dataset.doc).length; b.classList.toggle('none', !n);
     b.title = DOC_T[b.dataset.doc] + (n ? ' (' + n + ')' : ' - none yet, tap to upload'); });
 }
-async function loadDocs(){ const r = await api({pf: 'docs', job: FOLDER}, 12000); upDocs = r.ok && Array.isArray(r.docs) ? r.docs : []; docButtons(); }
+async function loadDocs(){ const r = await api({pf: 'docs', job: FOLDER}, 12000); upDocs = r.ok && Array.isArray(r.docs) ? r.docs : []; docButtons(); setTimeout(readAssembly, 1500); }
 const PDFJS = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
 let pdfjsP = null;
 function loadPdfjs(){
@@ -2223,7 +2270,106 @@ function loadPdfjs(){
   });
   return pdfjsP;
 }
-function docMsg(html){ $('dvBody').innerHTML = '<div class="dvmsg">' + html + '</div>'; }
+async function openPdf(d){
+  const lib = await loadPdfjs();
+  if (d.f) return lib.getDocument({url: d.f}).promise;
+  const r = await api({pf: 'doc.get', id: d.id}, 120000); if (!r.ok) throw new Error(r.error);
+  const bin = atob(r.b64), bytes = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return lib.getDocument({data: bytes}).promise;
+}
+// ---- reading CV's assembly sheets: one page per cabinet, "Assembly #24 - Std Base 2 Door", then its lists
+// (Doors, Parts Within Cabinet, Drawers, Handles, Hinges, Hinges Plates, Hardware...). Lines are rebuilt from
+// where the words sit on the page.
+// an assembly sheet page as text pieces with their position (pdf points, y up)
+async function pageItems(page){
+  const tc = await page.getTextContent();
+  return tc.items.filter(it => it.str && it.str.trim()).map(it => ({x: it.transform[4], y: it.transform[5], s: it.str.replace(/\s+/g, ' ').trim()}));
+}
+// CV assembly sheet page: "<Room>) - Wall #n", "Assembly #24(.1) - <title>", then sections in two columns
+// (Doors / Drawer Fronts / Parts Within Cabinet on the left; Drawers / Handles / Hinges / Miscellaneous / Hardware on the right)
+const ASM_SEC = /^(doors?|drawer fronts?|parts within cabinet|drawers?|handles?|hinges?|hinges? plates?|miscellaneous|hardware|accessories|rails?|hanging rails?|shelf supports?|legs?)$/i;
+const ASM_SKIP = /^(doors?|drawer fronts?|parts within cabinet|miscellaneous)$/i;
+function parseAsm(items){
+  if (!items || !items.length) return null;
+  let room = '', head = null;
+  for (const it of items){
+    const w = it.s.match(/\) - Wall\b/); if (w && !room) room = it.s.slice(0, w.index).replace(/^.*\(/, '').trim();
+    const m = it.s.match(/Assembly #(\d+)(?:\.(\d+))?\s*-\s*(.*)$/i);
+    if (m && (!head || it.y > head.y)) head = {y: it.y, cab: m[1], sub: m[2] || null, title: m[3].replace(/\s*\d+(\.\d+)? x \d+.*$/, '').trim()};
+  }
+  if (!head) return null;
+  // a heading sits on its own at the start of its row ("Hinge" in a Hardware row has its quantity before it)
+  const heads = items.filter(it => ASM_SEC.test(it.s) && it.y < head.y && !items.some(o => o !== it && Math.abs(o.y - it.y) <= 2.5 && o.x < it.x && it.x - o.x < 40))
+    .sort((p, q) => p.x - q.x);
+  const cols = [];                                  // column left edges, from where the section headings sit
+  for (const h of heads) if (!cols.length || h.x - cols[cols.length - 1] > 40) cols.push(h.x);
+  const colOf = x => { let c = -1; cols.forEach((cx, i) => { if (x >= cx - 6) c = i; }); return c; };
+  const secs = [];
+  cols.forEach((cx, ci) => {
+    const hs = heads.filter(h => colOf(h.x) === ci).sort((p, q) => q.y - p.y);
+    const rows = [];
+    for (const it of items){
+      if (it === head || hs.includes(it) || colOf(it.x) !== ci || it.y >= head.y) continue;
+      let r = rows.find(r => Math.abs(r.y - it.y) <= 2.5); if (!r){ r = {y: it.y, its: []}; rows.push(r); } r.its.push(it);
+    }
+    rows.sort((p, q) => q.y - p.y);
+    for (const h of hs){
+      const sec = {name: h.s, items: []}; secs.push(sec); let lastY = h.y;
+      for (const r of rows){
+        if (r.y >= h.y) continue;
+        if (hs.some(o => o !== h && o.y < h.y && o.y > r.y)) break;      // the next heading down starts its own section
+        if (lastY - r.y > 30) break;                                     // (a gap: the drawing, not the list)
+        const cells = r.its.sort((p, q) => p.x - q.x).map(i => i.s), t = cells.join(' ');
+        const m = t.match(/^(\d+)\s*(P\b)?\s*(.*[A-Za-z].*)$/); if (!m) break;
+        const code = cells.filter(c => /[A-Za-z]/.test(c)).pop().replace(/^\d+\s*(P\b)?\s*/, '');
+        sec.items.push({q: +m[1], n: m[3].trim() + (m[2] ? ' (pair)' : ''), c: code}); lastY = r.y;
+      }
+    }
+  });
+  return {cab: head.cab, sub: head.sub, title: head.title, room, secs};
+}
+// the hardware worth listing: drawers, handles, hinges... and anything under Hardware not already listed above
+function asmHardware(a){
+  const out = [];
+  for (const s of a.secs) if (!ASM_SKIP.test(s.name) && !/^hardware$/i.test(s.name)) for (const i of s.items) out.push({sec: s.name, q: i.q, n: i.n, c: i.c});
+  const key = c => c.toLowerCase().replace(/\s+[\d.]+$/, '').trim();
+  for (const s of a.secs) if (/^hardware$/i.test(s.name)) for (const i of s.items){
+    const k = key(i.c);
+    // the same thing already listed (CV cuts long names short in the narrow columns: "...NO CONNE")
+    const dup = out.find(o => { const ok = key(o.c); return ok === k || (k.startsWith(ok) && /[a-z]/.test(k[ok.length] || '') && /[a-z]$/.test(ok)); });
+    if (dup){ if (dup.c.length < i.c.length && dup.n === dup.c) dup.n = dup.c = i.c.replace(/\s+[\d.]+$/, ''); continue; }
+    out.push({sec: s.name, q: i.q, n: i.n.replace(/\s+[\d.]+$/, ''), c: i.c});
+  }
+  return out;
+}
+const roomKey = t => String(t || '').toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '');
+const sameRoom = r => !r || !ROOM_NAME || roomKey(r) === roomKey(ROOM_NAME);
+let asmByCab = {}, asmDone = false;
+async function readAssembly(){
+  if (asmDone) return; asmDone = true;
+  for (const d of docsOf('assembly')){
+    try {
+      const pdf = await openPdf(d);
+      for (let n = 1; n <= pdf.numPages; n++){
+        const a = parseAsm(await pageItems(await pdf.getPage(n)));
+        if (!a || !sameRoom(a.room)) continue;
+        const e = asmByCab[a.cab] || (asmByCab[a.cab] = {title: '', secs: [], pages: [], raw: {}});
+        if (!a.sub) e.title = a.title;
+        e.pages.push({d, n});
+        const sk = a.sub ? a.cab + '.' + a.sub : '';         // (one assembly can run over two pages: read them as one)
+        (e.raw[sk] = e.raw[sk] || []).push(...a.secs);
+      }
+      pdf.destroy();
+    } catch (_) {}
+    for (const e of Object.values(asmByCab)){        // (after each PDF: the list is right as soon as its sheet is read)
+      e.secs = [];
+      for (const [sk, secs] of Object.entries(e.raw)) for (const i of asmHardware({secs})) e.secs.push(Object.assign(i, {sub: sk}));
+    }
+    if (iso !== null && !$('cutList').hidden) buildCutList();
+  }
+}
+// ---- the viewer
+function docMsg(html){ $('dvBody').innerHTML = '<div class="dvmsg">' + html + '</div>'; $('dvPage').textContent = ''; }
 function openDocs(t){
   docT = t; $('docView').hidden = false; $('dvTitle').textContent = DOC_T[t];
   $('docBtns').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.doc === t)));
@@ -2235,54 +2381,109 @@ function openDocs(t){
   showDoc(list[0]);
 }
 function closePdf(){ if (docObs){ docObs.disconnect(); docObs = null; } if (docPdf){ docPdf.destroy(); docPdf = null; } }
-async function showDoc(d){
-  closePdf(); docCur = d; docMsg('Opening ' + esc(d.name) + '…');
+async function showDoc(d, page){
+  closePdf(); docCur = d; docZoom = 1; docMsg('Opening ' + esc(d.name) + '…');
   try {
-    const lib = await loadPdfjs();
-    let src;
-    if (d.f) src = {url: d.f};
-    else {
-      const r = await api({pf: 'doc.get', id: d.id}, 120000); if (!r.ok) throw new Error(r.error);
-      const bin = atob(r.b64), bytes = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      src = {data: bytes};
-    }
-    if (docCur !== d) return;
-    docPdf = await lib.getDocument(src).promise;
-    layoutDoc();
+    const pdf = await openPdf(d);
+    if (docCur !== d){ pdf.destroy(); return; }
+    docPdf = pdf; await layoutDoc();
+    if (page) goPage(page, true);
   } catch (e){ docMsg('Could not open it: ' + esc((e && e.message) || e)); }
 }
-// pages are laid out at once (right size, blank) and drawn as they scroll into view
-async function layoutDoc(){
+// pages are laid out at once (right size, blank) and drawn as they scroll into view, at the current zoom - so a
+// pinch draws them again sharp at the new size instead of stretching the old picture
+let docW0 = 1;
+async function layoutDoc(anchor){
   const pdf = docPdf; if (!pdf) return;
-  const body = $('dvBody'), ratio = body.scrollTop / Math.max(1, body.scrollHeight);
-  body.innerHTML = ''; if (docObs) docObs.disconnect();
-  const first = await pdf.getPage(1), w0 = first.getViewport({scale: 1}).width;
+  const body = $('dvBody');
+  const keep = anchor || {fx: 0.5, fy: body.scrollTop / Math.max(1, body.scrollHeight), px: 0, py: 0, ratio: true};
+  body.innerHTML = '<div class="dvpages" id="dvPages"></div>'; if (docObs) docObs.disconnect();
+  const wrap = $('dvPages');
+  const first = await pdf.getPage(1); docW0 = first.getViewport({scale: 1}).width;
   const cssW = Math.max(200, (body.clientWidth - 24) * docZoom), dpr = Math.min(devicePixelRatio || 1, 2);
   $('dvPct').textContent = Math.round(docZoom * 100) + '%';
   docObs = new IntersectionObserver(es => es.forEach(async en => {
     if (!en.isIntersecting || en.target.dataset.done) return;
     en.target.dataset.done = '1';
     try {
-      const page = await pdf.getPage(+en.target.dataset.n), vp = page.getViewport({scale: cssW / page.getViewport({scale: 1}).width * dpr});
+      const n = +en.target.dataset.n, page = await pdf.getPage(n), w1 = page.getViewport({scale: 1}).width;
+      const scale = Math.min(cssW * dpr, 4096) / w1, vp = page.getViewport({scale});
       const c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height; c.style.width = '100%';
       await page.render({canvasContext: c.getContext('2d'), viewport: vp}).promise;
-      en.target.innerHTML = ''; en.target.appendChild(c);
+      en.target.querySelector('span') && en.target.querySelector('span').remove(); en.target.prepend(c);
+      if (docT === 'assembly' || docT === 'shop') pageLink(en.target, await pageItems(page));
     } catch (_) {}                                  // (closed or zoomed while drawing: that page is drawn again or not needed)
-  }), {root: body, rootMargin: '600px 0px'});
+  }), {root: body, rootMargin: '800px 0px'});
   for (let n = 1; n <= pdf.numPages; n++){
     const page = n === 1 ? first : await pdf.getPage(n), v = page.getViewport({scale: 1});
     const div = document.createElement('div'); div.className = 'dvpage'; div.dataset.n = n;
     div.style.width = cssW + 'px'; div.style.height = (cssW * v.height / v.width) + 'px';
     div.innerHTML = '<span>' + n + ' / ' + pdf.numPages + '</span>';
-    body.appendChild(div); docObs.observe(div);
+    wrap.appendChild(div); docObs.observe(div);
   }
-  body.scrollTop = ratio * body.scrollHeight;
+  if (keep.ratio) body.scrollTop = keep.fy * body.scrollHeight;
+  else { body.scrollLeft = keep.fx * wrap.scrollWidth - keep.px; body.scrollTop = keep.fy * wrap.scrollHeight - keep.py; }
+  pageNow();
+}
+// "View in 3D" on an assembly sheet page: that cabinet, isolated (in this room, or the job's room it belongs to)
+function pageLink(div, items){
+  const a = parseAsm(items); if (!a) return;
+  const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'dv3d';
+  if (sameRoom(a.room)){
+    const g = cabOrder().find(gg => String(cabNoOf(gg)) === a.cab);
+    if (g === undefined) return;
+    btn.textContent = 'View cab ' + a.cab + ' in 3D';
+    btn.onclick = () => { $('dvClose').click(); for (const mv of movers) mv.target = 0; isolate(g); };
+  } else {
+    const e = folderEntries.find(x => roomKey(x.room) === roomKey(a.room)); if (!e) return;
+    btn.textContent = 'Cab ' + a.cab + ' in ' + a.room + ' ›';
+    btn.onclick = () => location.assign('?j=' + encodeURIComponent(e.key) + '&cab=' + encodeURIComponent(a.cab));
+  }
+  div.appendChild(btn);
+}
+function pageNow(){
+  const body = $('dvBody'), pages = body.querySelectorAll('.dvpage'); if (!pages.length) return 1;
+  const mid = body.scrollTop + body.clientHeight * 0.35; let n = 1;
+  pages.forEach(p => { if (p.offsetTop <= mid) n = +p.dataset.n; });
+  $('dvPage').textContent = n + ' / ' + (docPdf ? docPdf.numPages : pages.length); return n;
+}
+function goPage(n, now){
+  const p = $('dvBody').querySelector('.dvpage[data-n="' + n + '"]'); if (!p) return;
+  $('dvBody').scrollTo({top: p.offsetTop - 8, behavior: now ? 'auto' : 'smooth'}); setTimeout(pageNow, now ? 0 : 400);
+}
+function zoomTo(z, cx, cy){                          // (cx, cy: the point on screen that stays put)
+  const body = $('dvBody'), wrap = $('dvPages'); if (!wrap) return;
+  z = Math.max(0.5, Math.min(5, z)); if (Math.abs(z - docZoom) < 0.01) return;
+  const r = body.getBoundingClientRect(), px = (cx == null ? r.width / 2 : cx - r.left), py = (cy == null ? r.height / 2 : cy - r.top);
+  const fx = (body.scrollLeft + px) / Math.max(1, wrap.scrollWidth), fy = (body.scrollTop + py) / Math.max(1, wrap.scrollHeight);
+  docZoom = z; layoutDoc({fx, fy, px, py});
 }
 $('docBtns').querySelectorAll('button').forEach(b => b.onclick = () => openDocs(b.dataset.doc));
 $('dvClose').onclick = () => { closePdf(); $('docView').hidden = true; $('docBtns').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', 'false')); };
 $('dvSel').onchange = () => showDoc(docsOf(docT)[+$('dvSel').value]);
-$('dvIn').onclick = () => { docZoom = Math.min(4, docZoom * 1.25); layoutDoc(); };
-$('dvOut').onclick = () => { docZoom = Math.max(0.5, docZoom / 1.25); layoutDoc(); };
+$('dvIn').onclick = () => zoomTo(docZoom * 1.25);
+$('dvOut').onclick = () => zoomTo(docZoom / 1.25);
+// (page buttons jump straight there: quick taps through a 30-page sheet)
+$('dvPrev').onclick = () => goPage(Math.max(1, pageNow() - 1), true);
+$('dvNext').onclick = () => { const n = pageNow(); goPage(Math.min(docPdf ? docPdf.numPages : n, n + 1), true); };
+$('dvBody').addEventListener('scroll', () => { clearTimeout($('dvBody')._t); $('dvBody')._t = setTimeout(pageNow, 80); }, {passive: true});
+// pinch: the pages follow the fingers (stretched for the moment), then are drawn again sharp at that size
+{
+  const body = $('dvBody'); let pinch = null;
+  const dist = t => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+  body.addEventListener('touchstart', e => { if (e.touches.length === 2 && $('dvPages')){
+    const r = $('dvPages').getBoundingClientRect();
+    pinch = {d0: dist(e.touches), cx: (e.touches[0].clientX + e.touches[1].clientX) / 2, cy: (e.touches[0].clientY + e.touches[1].clientY) / 2, f: 1};
+    $('dvPages').style.transformOrigin = (pinch.cx - r.left) + 'px ' + (pinch.cy - r.top) + 'px'; } }, {passive: true});
+  body.addEventListener('touchmove', e => { if (pinch && e.touches.length === 2){ e.preventDefault();
+    pinch.f = Math.max(0.5 / docZoom, Math.min(5 / docZoom, dist(e.touches) / pinch.d0)); $('dvPages').style.transform = 'scale(' + pinch.f + ')'; } }, {passive: false});
+  body.addEventListener('touchend', e => { if (pinch && e.touches.length < 2){ const p = pinch; pinch = null;
+    if (Math.abs(p.f - 1) > 0.02) zoomTo(docZoom * p.f, p.cx, p.cy); else if ($('dvPages')) $('dvPages').style.transform = ''; } });
+  body.addEventListener('gesturestart', e => e.preventDefault());       // (Safari: no page zoom on top)
+  body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault();   // (trackpad pinch / ctrl + wheel)
+    clearTimeout(body._z); body._zf = (body._zf || 1) * Math.exp(-e.deltaY / 200);
+    body._z = setTimeout(() => { zoomTo(docZoom * body._zf, e.clientX, e.clientY); body._zf = 1; }, 120); }, {passive: false});
+}
 $('dvUp').onclick = () => {
   if (!pinOk){ const p = prompt('Settings PIN to upload a PDF'); if (!p) return; pinOk = p; }
   $('dvFile').value = ''; $('dvFile').click();
@@ -2297,9 +2498,10 @@ $('dvFile').onchange = async () => {
   try { sessionStorage.setItem('pf-pin', pinOk); } catch (_) {}
   upDocs.push(r.doc); docButtons(); openDocs(docT);
   const i = docsOf(docT).indexOf(r.doc); $('dvSel').value = i; showDoc(r.doc);
+  if (docT === 'assembly'){ asmDone = false; asmByCab = {}; setTimeout(readAssembly, 500); }
 };
 let docResizeT = 0;
-new ResizeObserver(() => { if (docPdf && !$('docView').hidden){ clearTimeout(docResizeT); docResizeT = setTimeout(layoutDoc, 250); } }).observe($('dvBody'));
+new ResizeObserver(() => { if (docPdf && !$('docView').hidden){ clearTimeout(docResizeT); docResizeT = setTimeout(() => layoutDoc(), 250); } }).observe($('dvBody'));
 // the job's folder (rooms of one job together, or as Settings set it) - for its notes and the Back link
 (async () => {
   const [jobs] = await Promise.all([jobIndex(), loadDash()]);
@@ -2316,6 +2518,9 @@ new ResizeObserver(() => { if (docPdf && !$('docView').hidden){ clearTimeout(doc
     }
   }
   jobDocs = (e && e.docs) || []; loadDocs();
+  if (e){ const f = buildFolders(jobs).get(FOLDER) || buildFolders(jobs, null, true).get(FOLDER); folderEntries = f ? f.entries : []; }
+  const wantCab = Q.get('cab');                    // (from an assembly sheet page: open that cabinet)
+  if (wantCab){ const g = cabOrder().find(gg => String(cabNoOf(gg)) === wantCab); if (g !== undefined) isolate(g); }
   await loadNotes();
   const want = Q.get('note');
   if (want){ const n = jobNotes.find(x => x.id === want); if (n){ openNotes(true); goNote(n); } }
