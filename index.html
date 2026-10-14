@@ -216,9 +216,11 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
 .roomnav a[aria-disabled="true"]{opacity:.3;pointer-events:none}
 .roomnav span{min-width:120px;text-align:center}
 /* side lists: cabinets of the room (right), parts of an isolated cabinet (left) */
-.sidelist{position:absolute;top:62px;right:12px;width:min(270px,44%);max-height:calc(100% - 200px);overflow:auto;background:rgba(16,20,23,.94);border:1px solid var(--line);border-radius:10px;padding:8px 10px;z-index:2;font-size:14px}
-.sidelist.left{right:auto;left:12px;width:min(430px,60%)}
-.slhead{display:flex;justify-content:space-between;align-items:center;position:sticky;top:-8px;background:inherit;padding:2px 0 6px}
+#work{flex:1;min-height:0;display:flex}
+#work #stage{flex:1;min-width:0}
+.sidelist{flex:none;width:min(290px,34vw);overflow:auto;background:var(--card);border-left:1px solid var(--line);padding:10px 12px;font-size:14px}
+.sidelist.left{width:min(520px,46vw);border-left:0;border-right:1px solid var(--line)}
+.slhead{display:flex;justify-content:space-between;align-items:center;position:sticky;top:-10px;background:var(--card);padding:4px 0 6px;z-index:1}
 .slhead b{color:var(--cyan);font-size:15px}
 .slx{font:600 18px var(--display);width:34px;height:30px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer}
 .slnote{margin:0 0 6px;font-size:12px;color:var(--muted)}
@@ -230,11 +232,14 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
 .sidelist table{width:100%;border-collapse:collapse;font-size:13px}
 .sidelist th{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:4px;border-bottom:1px solid var(--line)}
 .sidelist td{padding:6px 4px;border-bottom:1px solid var(--line);vertical-align:top}
+.sidelist tr.mh td{background:#0d2630;color:var(--cyan);font:700 12px var(--display);letter-spacing:.06em;text-transform:uppercase;text-align:left;cursor:default}
+.sidelist td.nt{color:#ffd27a;font-size:12px}
+.sidelist td.bd{font-size:12px;color:var(--muted);white-space:nowrap}
 .sidelist td:first-child{font:700 14px var(--mono);color:var(--cyan);text-align:center}
 .sidelist td.sz{font-family:var(--mono);font-size:12px;white-space:nowrap}
 .sidelist tbody tr{cursor:pointer}
 .sidelist tbody tr:hover,.sidelist tbody tr.on{background:#0d2630}
-.slopen{position:absolute;top:62px;right:12px;z-index:2;font:600 13px var(--display);padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:rgba(16,20,23,.9);color:var(--fg);cursor:pointer}
+.slopen{position:absolute;top:64px;right:12px;z-index:2;font:600 13px var(--display);padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:rgba(16,20,23,.9);color:var(--fg);cursor:pointer}
 .slopen.left{right:auto;left:12px}
 .brandlogo{height:30px;width:30px;vertical-align:middle;margin-right:8px;border-radius:4px}
 /* measure + section + notes */
@@ -296,7 +301,14 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
     <section class="sets" id="sets" hidden aria-label="Settings"></section>
   </div>
 </main>
+<div id="work">
+  <aside class="sidelist left" id="cutList" hidden aria-label="Parts in this cabinet">
+    <div class="slhead"><b id="cutListTitle">Parts</b><button type="button" class="slx" id="cutListX" aria-label="Hide the parts list">&lsaquo;</button></div>
+    <table><thead><tr><th>Qty</th><th>Part</th><th>Size</th><th>Banding</th><th>Note</th></tr></thead><tbody id="cutListBody"></tbody></table>
+  </aside>
 <div id="stage">
+  <button type="button" class="slopen" id="cabListOpen" hidden>Cabinets &lsaquo;</button>
+  <button type="button" class="slopen left" id="cutListOpen" hidden>&rsaquo; Parts</button>
   <div class="views" role="toolbar" aria-label="View">
     <div class="vg" role="group" aria-label="View">
       <button id="vCab" aria-pressed="true">Cabinet</button>
@@ -325,17 +337,6 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
       <button id="vBack" class="vback" hidden>&lsaquo; Back to job</button>
     </div>
   </div>
-  <aside class="sidelist" id="cabList" hidden aria-label="Cabinets in this room">
-    <div class="slhead"><b>Cabinets</b><button type="button" class="slx" id="cabListX" aria-label="Hide the cabinet list">&rsaquo;</button></div>
-    <p class="slnote">Tap to find it · double-tap to open it</p>
-    <ol id="cabListBody"></ol>
-  </aside>
-  <button type="button" class="slopen" id="cabListOpen" hidden>Cabinets &lsaquo;</button>
-  <aside class="sidelist left" id="cutList" hidden aria-label="Parts in this cabinet">
-    <div class="slhead"><b id="cutListTitle">Parts</b><button type="button" class="slx" id="cutListX" aria-label="Hide the parts list">&lsaquo;</button></div>
-    <table><thead><tr><th>Qty</th><th>Part</th><th>Size</th><th>Material</th></tr></thead><tbody id="cutListBody"></tbody></table>
-  </aside>
-  <button type="button" class="slopen left" id="cutListOpen" hidden>&rsaquo; Parts</button>
   <div class="hint" id="hint"></div>
   <div class="loupe" id="loupe" hidden aria-hidden="true"></div>
   <section class="mpanel" id="mpanel" hidden aria-label="Measure">
@@ -375,6 +376,12 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
     <div id="sheetBody"></div>
   </section>
 </div>
+  <aside class="sidelist" id="cabList" hidden aria-label="Cabinets in this room">
+    <div class="slhead"><b>Cabinets</b><button type="button" class="slx" id="cabListX" aria-label="Hide the cabinet list">&rsaquo;</button></div>
+    <p class="slnote">Tap to find it · double-tap to open it</p>
+    <ol id="cabListBody"></ol>
+  </aside>
+</div>
 <div class="card empty" id="card">
   <button type="button" class="cx" id="cardClose" aria-label="Hide this panel" title="Hide">&times;</button>
   <div class="tag"><i id="ptag" style="font-style:normal">ID</i><span id="pid">–</span></div>
@@ -399,7 +406,8 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/math/SimplexNoise.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/SSAOPass.js"></script>
 <script>
-var JOB_FETCHED = 0;                               // (?perf: when the job file had arrived)
+var JOB_FETCHED = 0;
+const WALLK = k => k === 'wall' || k === 'ceiling';     // (ceilings fade and hide like walls)                               // (?perf: when the job file had arrived)
 const Q = new URLSearchParams(location.search);
 const RAWJ = (Q.get('j') || '').trim();
 // Each CV job has its own page, keyed by its full job name ("J1093 - 62 Florizel St - Kitchen" ->
@@ -605,7 +613,7 @@ function brandStrip(extra){
 }
 async function home(focus){
   document.title = 'Part Finder · CN Fitouts';
-  $('stage').hidden = true; $('card').hidden = true; $('home').hidden = false;
+  $('stage').hidden = true; $('work').hidden = true; $('card').hidden = true; $('home').hidden = false;
   brandStrip();
   const route = Q.has('settings') ? 'settings' : Q.get('f') || (focus ? 'num:' + focus : '');
   let jobs = await jobIndex();
@@ -945,7 +953,7 @@ function finishOf(mi, kind){
   if (kind === 'hw' && !d.t && grey && c[0] < .2) return {r: .3, m: .1};      // black appliance fronts, cooktops
   if (/tile/i.test(n)) return {r: .3, m: 0};
   if (MATT.test(n)) return {r: .85, m: 0};
-  if (kind === 'wall' || kind === 'room') return {r: .9, m: 0};
+  if (WALLK(kind) || kind === 'room') return {r: .9, m: 0};
   return {r: .62, m: 0};                                                       // melamine, laminate, timber veneer
 }
 function realMaterial(mi, kind){
@@ -1009,7 +1017,7 @@ function makeObject(rec, isPart){
   for (const s of subs){
     const g = geo(s);
     const mesh = new THREE.Mesh(g, realMaterial(s.m, isPart ? 'part' : rec.k));
-    mesh.castShadow = rec.k !== 'wall' && rec.k !== 'room'; mesh.receiveShadow = true;
+    mesh.castShadow = !WALLK(rec.k) && rec.k !== 'room'; mesh.receiveShadow = true;
     mesh.userData.mi = s.m;
     if (isPart) mesh.userData.part = rec;
     scene.add(mesh); meshes.push(mesh); box.union(g.boundingBox);
@@ -1033,7 +1041,7 @@ const hardware = JOB.context.map(c => makeObject(c, false));
 // walls: plain light grey; they fade out when the camera is behind them so they never block the view
 const jobCentre = new THREE.Box3(); parts.forEach(x => jobCentre.union(x.box));
 const JC = jobCentre.getCenter(new THREE.Vector3());
-const walls = hardware.filter(h => h.p.k === 'wall');
+const walls = hardware.filter(h => WALLK(h.p.k));
 { // the overhead light covers the whole room: shadows under overheads and benchtops, and on the floor
   const all = jobCentre.clone(); hardware.forEach(h => all.union(h.box));
   const size = all.getSize(new THREE.Vector3()), r = Math.max(size.x, size.z) * 0.62 + 300;
@@ -1044,6 +1052,10 @@ const walls = hardware.filter(h => h.p.k === 'wall');
 for (const w of walls){
   for (const m of w.meshes){ m.material.map = null; m.material.color.set(0xe4e1db); m.material.userData.base = m.material.color.clone(); m.material.needsUpdate = true; }
   const s = w.box.getSize(new THREE.Vector3()), c = w.box.getCenter(new THREE.Vector3());
+  if (w.p.k === 'ceiling'){                               // faces down into the room: from above you see through it
+    for (const m of w.meshes){ m.material.color.set(0xf1efea); m.material.userData.base = m.material.color.clone(); }
+    w.inward = new THREE.Vector3(0, -1, 0); w.face = c.clone().setY(w.box.min.y); w.fade = 1; continue;
+  }
   const n = s.x < s.z ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 0, 1);
   if (n.dot(JC.clone().sub(c)) < 0) n.negate();          // points into the room
   w.inward = n; w.face = c.clone().addScaledVector(n, Math.min(s.x, s.z) / 2); w.fade = 1;
@@ -1202,7 +1214,7 @@ try { dimsOn = localStorage.getItem('pf-dims') === '1'; } catch (_) {}
 function setLook(x, opacity, edgeColor, edgeOpacity, tint){
   for (const m of x.meshes){
     const mat = m.material;
-    mat.opacity = opacity; mat.depthWrite = opacity > .9;
+    mat.opacity = opacity; mat.depthWrite = opacity > .9; mat.visible = opacity > 0.01;   // (fully clear: not drawn at all)
     mat.color.copy(mat.userData.base);
     mat.emissive.copy(tint || new THREE.Color(0)); mat.userData.glow = !!tint;
     m.renderOrder = opacity > .9 ? 2 : 1;
@@ -1221,19 +1233,19 @@ function paint(){
       else if (isoSolid) setLook(x, 1, edge, 0);
       else setLook(x, .18, edge, .85);
     }
-    for (const h of hardware) if (h.p.k !== 'wall') isoSolid ? setLook(h, 1, edge, 0) : setLook(h, .15, edge, .6);
+    for (const h of hardware) if (!WALLK(h.p.k)) isoSolid ? setLook(h, 1, edge, 0) : setLook(h, .15, edge, .6);
     return;
   }
   for (const x of parts){
     if ((picking && pickSet.has(x.p.g)) || (!picking && selCab !== null && x.p.g === selCab)){ setLook(x, 1, hi, solid ? 0 : 1, null); for (const m of x.meshes) m.material.color.lerp(hi, picking ? .7 : .45); }
     else if (solid) setLook(x, 1, x === sel ? hi : edge, x === sel ? 1 : 0, x === sel ? hi : null);   // solid: no outline lines
-    else if (!sel) setLook(x, .1, edge, .9);                  // see-through: outlines over a faint ghost
+    else if (!sel) setLook(x, 0, edge, .9);                   // see-through: just the outlines (cheapest to draw)
     else if (x === sel) setLook(x, 1, hi, 1, hi);
     else if (x.p.g === sel.p.g) setLook(x, .3, edge, .5);
     else setLook(x, .06, ghost, .08);
   }
   for (const h of hardware){
-    if (h.p.k === 'wall'){ for (const m of h.meshes) m.material.opacity = h.fade; continue; }
+    if (WALLK(h.p.k)){ for (const m of h.meshes) m.material.opacity = h.fade; continue; }
     const near = sel && h.p.g === sel.p.g;
     if (solid) setLook(h, 1, edge, 0);
     else setLook(h, !sel ? .08 : near ? .3 : .05, edge, !sel ? .5 : near ? .4 : .05);
@@ -1245,7 +1257,7 @@ const CABS = JOB.cabs || [];
 const TYPE_NAMES = {base: 'Base cabinets', upper: 'Upper / overhead cabinets', tall: 'Tall cabinets', toe: 'Toe kicks & kickers',
   panel: 'Panels & fillers', bench: 'Benchtops & splashbacks'};
 const hiddenTypes = new Set(), hiddenMats = new Set(), hiddenParts = new Set();
-let hideHardware = false, hideWalls = false, hideRoom = false;
+let hideHardware = false, hideWalls = false, hideRoom = false, hideCeiling = false;
 const isSheet = mi => !!((JOB.materials || [])[mi] || {}).sheet;
 const matName = mi => ((JOB.materials || [])[mi] || {}).name || 'Other finishes';
 function typeOf(g){ return (CABS[g] || {}).t || 'base'; }
@@ -1369,8 +1381,9 @@ function applyVisibility(){
     const isHw = !parts.includes(x);
     const k = isHw ? (x.p.k || (x.p.g < 0 ? 'room' : 'hw')) : null;
     let on;
-    if (iso !== null) on = isoGs.has(x.p.g) && k !== 'wall' && k !== 'room';
+    if (iso !== null) on = isoGs.has(x.p.g) && !WALLK(k) && k !== 'room';
     else if (k === 'wall') on = !hideWalls;
+    else if (k === 'ceiling') on = !hideCeiling;
     else if (k === 'room') on = !hideRoom;
     else if (k === 'panel' && x.p.g < 0) on = !hiddenTypes.has('panel');
     else on = !hiddenTypes.has(typeOf(x.p.g)) && !(k === 'hw' && hideHardware);
@@ -1429,7 +1442,8 @@ function buildSheet(){
       body.appendChild(row('Cabinet numbers', labels.length + ' cabinets', showNums, on => showNums = on));
     }
     sec('Room');
-    if (walls.length) body.appendChild(row('Walls', '', !hideWalls, on => hideWalls = !on));
+    if (walls.some(w => w.p.k === 'wall')) body.appendChild(row('Walls', '', !hideWalls, on => hideWalls = !on));
+    if (walls.some(w => w.p.k === 'ceiling')) body.appendChild(row('Ceiling', 'see-through from above', !hideCeiling, on => hideCeiling = !on));
     body.appendChild(row('Floor, windows & doors', '', !hideRoom, on => hideRoom = !on));
     body.appendChild(row('Hardware & appliances', '', !hideHardware, on => hideHardware = !on));
     if (typeof ao !== 'undefined' && ao) body.appendChild(row('Soft shading', 'in corners', aoOn, on => { aoOn = on; gaps.length = 0; markDirty(); }));
@@ -1658,36 +1672,96 @@ function buildCabList(){
     b.onclick = () => {
       const now = performance.now();
       if (cabTap.g === g && now - cabTap.t < 400){ cabTap = {g: null, t: 0}; isolate(g); return; }   // double-tap: open it
-      cabTap = {g, t: now}; showCab(selCab === g ? null : g);                                          // tap: light it up in the room
+      cabTap = {g, t: now}; showCab(g); faceView(g);                                                    // tap: light it up and look at its face
     };
     li.appendChild(b); ol.appendChild(li);
   }
 }
+// what a piece of CV hardware is, for the parts list (CV draws one item in several pieces: count the main one)
+const HW_SKIP = /^(_HGBASE|_DGAMEM|_DGBKBKT|_DGBMEM|_ROFBRKT|_ROFFNT|_PLPOST|11|ROG_BRKT_FNT|VENT)$/i;
+function hwItem(c, n){
+  c = String(c || ''); n = String(n || '');
+  if (HW_SKIP.test(c) || /syncro rod|pullpost|base plate|assembly member|back bracket|box member/i.test(n)) return null;
+  if (/^_HGDD$/i.test(c)) return 'Hinge (double door)';
+  if (/^_HGARM$/i.test(c) || /widget arm$/i.test(n)) return 'Hinge';
+  if (/^_DGSIDE$/i.test(c) || /guide side$/i.test(n)) return null;          // (runners are counted per drawer instead)
+  if (/^_PLGRIP$/i.test(c) || /widget pull$|handle model/i.test(n)) return 'Handle';
+  if (/drawerbox/i.test(n)) return 'Drawer box (metal)';
+  if (/rollout\b/i.test(n) && !/bracket/i.test(n)) return 'Roll-out';
+  if (/bin bucket/i.test(n)) return 'Bin';
+  if (/runner/i.test(n)) return 'Runner';
+  if (/RAIL/i.test(c)) return 'Rail (' + c + ')';
+  if (/^LED/i.test(c)) return 'LED ' + c.replace(/^LED_?/i, '').toLowerCase();
+  if (/userlight/i.test(n)) return 'Light';
+  if (/countertop/i.test(n)) return 'Benchtop (CV)';
+  return (n.replace(/^(Base|Upper|Tall|Vanity|Appliance)?\s*Cabinet\s*(Widget\s*)?/i, '') || c) + (c ? ' · ' + c : '');
+}
+// banding in a few characters: "2 · NENE" (edges taped, then CV's code without its leading count)
+function bandShort(code){
+  const m = String(code || '').match(/^(\d*)([A-Z]+)$/i); if (!m) return code || '';
+  const n = m[2].split('').filter(c => c.toUpperCase() !== 'N').length;
+  return n ? n + ' · ' + m[2].toUpperCase() : 'none';
+}
 function buildCutList(){
-  const rows = new Map();
+  const byMat = new Map();
   for (const x of parts){
     if (!isoGs.has(x.p.g) || !x.p.id) continue;
     const p = x.p, t = Number.isFinite(p.thick) ? Math.round(p.thick) : '';
-    const mat = p.material || (x.meshes[0] && matName(x.meshes[0].userData.mi)) || '';
+    const mat = p.material || (x.meshes[0] && matName(x.meshes[0].userData.mi)) || 'Other';
     const size = Math.round(p.L) + ' × ' + Math.round(p.W) + (t ? ' × ' + t : '');
-    const k = partLabel(x) + '|' + size + '|' + mat;
-    if (!rows.has(k)) rows.set(k, {name: partLabel(x), size, mat, xs: []});
+    const band = bandShort(p.edges), note = p.comment || '';
+    const k = partLabel(x) + '|' + size + '|' + band + '|' + note;
+    if (!byMat.has(mat)) byMat.set(mat, new Map());
+    const rows = byMat.get(mat);
+    if (!rows.has(k)) rows.set(k, {name: partLabel(x), size, band, note, xs: []});
     rows.get(k).xs.push(x);
   }
-  const list = [...rows.values()].sort((a, b) => a.name.localeCompare(b.name) || b.size.localeCompare(a.size));
-  const total = list.reduce((n, r) => n + r.xs.length, 0);
+  // materials with the most parts first
+  const mats = [...byMat].map(([mat, rows]) => ({mat, rows: [...rows.values()].sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric: true}) || b.size.localeCompare(a.size)),
+    n: [...rows.values()].reduce((s, r) => s + r.xs.length, 0)})).sort((a, b) => b.n - a.n || a.mat.localeCompare(b.mat));
+  const total = mats.reduce((s, m) => s + m.n, 0);
   $('cutListTitle').textContent = $('room').textContent + ' · ' + total + ' parts';
   const tb = $('cutListBody'); tb.innerHTML = '';
-  for (const r of list){
-    const tr = document.createElement('tr');
-    tr.innerHTML = '<td></td><td></td><td class="sz"></td><td></td>';
-    const td = tr.children; td[0].textContent = r.xs.length; td[1].textContent = r.name; td[2].textContent = r.size; td[3].textContent = r.mat;
-    tr.title = 'Part ' + r.xs.map(x => x.p.id).join(', ');
-    tr.onclick = () => { tb.querySelectorAll('tr.on').forEach(q => q.classList.remove('on')); tr.classList.add('on');
-      const i = r.xs.indexOf(tipSel); showTip(r.xs[(i + 1) % r.xs.length]); };   // (tap again: the next one of the same)
-    tb.appendChild(tr);
+  const head = (text) => { const tr = document.createElement('tr'); tr.className = 'mh'; tr.innerHTML = '<td colspan="5"></td>'; tr.firstChild.textContent = text; tb.appendChild(tr); };
+  for (const m of mats){
+    head(m.mat + ' · ' + m.n);
+    for (const r of m.rows){
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td></td><td></td><td class="sz"></td><td class="bd"></td><td class="nt"></td>';
+      const td = tr.children; td[0].textContent = r.xs.length; td[1].textContent = r.name; td[2].textContent = r.size; td[3].textContent = r.band; td[4].textContent = r.note;
+      tr.title = 'Part ' + r.xs.map(x => x.p.id).join(', ');
+      tr.onclick = () => { tb.querySelectorAll('tr.on').forEach(q => q.classList.remove('on')); tr.classList.add('on');
+        const i = r.xs.indexOf(tipSel); showTip(r.xs[(i + 1) % r.xs.length]); };   // (tap again: the next one of the same)
+      tb.appendChild(tr);
+    }
   }
-  if (!list.length) tb.innerHTML = '<tr><td colspan="4">No cut-list parts in this cabinet</td></tr>';
+  // hardware: drawers (from the drawers that open), hinges, handles, drawer systems, rails...
+  const hw = new Map(), add = (name, n) => hw.set(name, (hw.get(name) || 0) + n);
+  const drawers = movers.filter(mv => mv.m.t === 'drawer' && parts[mv.m.f] && isoGs.has(parts[mv.m.f].p.g));
+  if (drawers.length){ add('Drawer', drawers.length); add('Drawer runners (pair)', drawers.length); }
+  const doors = movers.filter(mv => mv.m.t === 'door' && !mv.m.fixed && parts[mv.m.f] && isoGs.has(parts[mv.m.f].p.g));
+  if (doors.length) add('Door (opening)', doors.length);
+  for (const h of hardware) if (isoGs.has(h.p.g) && h.p.k === 'hw'){ const it = hwItem(h.p.c, h.p.n); if (it) add(it, 1); }
+  if (hw.size){
+    head('Hardware & drawers');
+    for (const [name, n] of [...hw].sort((a, b) => a[0].localeCompare(b[0]))){
+      const tr = document.createElement('tr'); tr.className = 'hwr';
+      tr.innerHTML = '<td></td><td colspan="4"></td>'; tr.children[0].textContent = n; tr.children[1].textContent = name; tb.appendChild(tr);
+    }
+  }
+  if (!mats.length && !hw.size) tb.innerHTML = '<tr><td colspan="5">No cut-list parts in this cabinet</td></tr>';
+}
+// straight in front of a cabinet, close enough to fill the view with it (and a little of each side)
+function faceView(g){
+  if (elevI >= 0){ elevI = -1; camera.fov = ORBIT_FOV; elevLabel(); }
+  const cab = parts.filter(x => x.p.g === g); if (!cab.length) return;
+  const box = boxOf(cab), c = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3()), f = cabFront(cab);
+  const dir = f ? f.clone().sub(c).setY(0) : new THREE.Vector3(0, 0, 1); if (dir.length() < 1) dir.set(0, 0, 1); dir.normalize();
+  const w = Math.abs(dir.x) > Math.abs(dir.z) ? size.z : size.x, depth = Math.abs(dir.x) > Math.abs(dir.z) ? size.x : size.z;
+  const vf = THREE.MathUtils.degToRad(camera.fov) / 2, hf = Math.atan(Math.tan(vf) * camera.aspect);
+  const dist = Math.max(size.y * 0.75 / Math.tan(vf), w * 0.75 / Math.tan(hf), 900) + depth / 2;
+  camera.position.copy(c).addScaledVector(dir, dist).add(new THREE.Vector3(0, size.y * 0.15, 0));
+  controls.target.copy(c); camera.near = Math.max(20, dist / 200); camera.far = dist * 20 + 20000; camera.updateProjectionMatrix(); controls.update(); forceFrame = true;
 }
 function sideLists(){
   const quiet = $('npanel').hidden && !measuring && $('spanel').hidden;     // (measuring / cutting: the model needs the room)
@@ -1719,7 +1793,7 @@ const elevs = (() => {
   }
   const mid = boxOf(parts).getCenter(new THREE.Vector3());
   return [...by].map(([i, gs]) => {
-    const items = parts.concat(hardware.filter(h => h.p.k !== 'wall' && h.p.k !== 'room')).filter(x => gs.includes(x.p.g));
+    const items = parts.concat(hardware.filter(h => !WALLK(h.p.k) && h.p.k !== 'room')).filter(x => gs.includes(x.p.g));
     const box = boxOf(items), c = box.getCenter(new THREE.Vector3());
     return {n: dirs[i], gs, box, ang: Math.atan2(c.z - mid.z, c.x - mid.x)};
   }).sort((a, b) => a.ang - b.ang);
@@ -1754,7 +1828,7 @@ function pick(e){
   const r = renderer.domElement.getBoundingClientRect();
   ray.setFromCamera({x:(e.clientX - r.left) / r.width * 2 - 1, y:-(e.clientY - r.top) / r.height * 2 + 1}, camera);
   // walls, floor, windows and room doors are never tapped: taps go straight through them to the cabinets
-  const all = parts.concat(hardware.filter(h => h.p.k !== 'wall' && h.p.k !== 'room'));
+  const all = parts.concat(hardware.filter(h => !WALLK(h.p.k) && h.p.k !== 'room'));
   const hit = ray.intersectObjects(all.flatMap(x => x.meshes.filter(m => m.visible)))[0];
   return hit ? all.find(q => q.meshes.includes(hit.object)) : null;
 }
@@ -2400,12 +2474,12 @@ function drawAO(){
 // they are rebuilt once things are still again.
 const BATCH_LAYER = 5, NOBATCH = /[?&]nobatch\b/.test(location.search);
 let batches = [], batchMembers = [], batchWanted = 0, batchStable = 0, batchLastSig = '', batchPartial = false;
-const batchObjs = () => parts.concat(hardware).filter(x => !(x.p && x.p.k === 'wall'));
+const batchObjs = () => parts.concat(hardware).filter(x => !(x.p && WALLK(x.p.k)));
 function meshKey(m){
   const t = m.material;
-  if (!m.visible || !t || !t.visible || t.opacity < 0.999 || !t.depthWrite || t.wireframe || !m.parent) return null;
+  if (!m.visible || !t || !t.visible || t.wireframe || !m.parent) return null;     // (faded ghosts merge too: see-through stays quick)
   if (sel && sel.meshes.indexOf(m) >= 0) return null;          // (the picked part stays on its own: its glow changes)
-  return 'm' + m.parent.id + '|' + (t.map ? t.map.uuid : '-') + '|' + t.color.getHex() + '|' + t.emissive.getHex() + '|' + t.emissiveIntensity
+  return 'm' + m.parent.id + '|' + t.opacity + '|' + t.depthWrite + '|' + (t.map ? t.map.uuid : '-') + '|' + t.color.getHex() + '|' + t.emissive.getHex() + '|' + t.emissiveIntensity
     + '|' + t.roughness + '|' + t.metalness + '|' + t.envMapIntensity + '|' + t.side + '|' + m.renderOrder + '|' + m.castShadow + '|' + m.receiveShadow
     + '|' + !!m.userData.noAO + '|' + !!m.geometry.attributes.uv + '|' + t.polygonOffset;
 }
