@@ -242,6 +242,24 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
 .slopen{position:absolute;top:64px;right:12px;z-index:2;font:600 13px var(--display);padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:rgba(16,20,23,.9);color:var(--fg);cursor:pointer}
 .slopen.left{right:auto;left:12px}
 .brandlogo{height:30px;width:30px;vertical-align:middle;margin-right:8px;border-radius:4px}
+/* job PDFs */
+.docbtns{display:flex;gap:4px;margin-right:6px}
+.docbtns button{font:600 12px var(--display);letter-spacing:.04em;text-transform:uppercase;padding:7px 10px;border-radius:6px;border:1px solid #2b3a42;background:#0b1114;color:#e6f4fa;cursor:pointer;min-height:34px}
+.docbtns button.none{color:#6d7f88;border-style:dashed}
+.docbtns button[aria-pressed="true"]{background:var(--cyan);border-color:var(--cyan);color:#00141b}
+.docview{position:fixed;left:0;right:0;bottom:0;top:52px;z-index:45;background:#1b2024;display:flex;flex-direction:column}
+.dvbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 12px;background:#0b0e10;border-bottom:1px solid var(--line)}
+.dvbar b{color:var(--cyan);font-size:16px;margin-right:auto}
+.dvbar select,.dvbar button{font:600 13px var(--display);padding:8px 12px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer;min-height:38px;max-width:46vw}
+.dvz{display:flex;align-items:center;gap:4px}
+.dvz span{min-width:48px;text-align:center;font:600 13px var(--mono);color:var(--muted)}
+.dvbar .dvclose{background:var(--cyan);border-color:var(--cyan);color:#00141b}
+.dvbody{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;align-items:center;gap:12px;-webkit-overflow-scrolling:touch}
+.dvpage{background:#fff;box-shadow:0 2px 12px rgba(0,0,0,.5);position:relative;flex:none}
+.dvpage span{position:absolute;left:50%;top:40%;transform:translateX(-50%);color:#999;font:600 14px var(--display)}
+.dvmsg{margin:40px auto;max-width:520px;text-align:center;color:var(--fg);font-size:17px;line-height:1.5}
+.dvmsg small{color:var(--muted);font-size:14px}
+@media (max-width:700px){.docbtns button{padding:6px 7px;font-size:11px}}
 /* measure + section + notes */
 .views button#vNotes{border-color:var(--cyan)}
 .views button#vNotes[aria-pressed="true"]{background:var(--mid);border-color:var(--mid);color:#fff}
@@ -279,7 +297,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
 </style>
 
 </head><body>
-<div class="strip"><span><a href="./" id="backLink" title="All jobs"><img class="brandlogo" src="logo-mark.png" alt="">&lsaquo; Jobs</a> · <b id="job">–</b> · <span id="room">Room 1</span></span><nav class="roomnav" id="roomNav" hidden aria-label="Rooms in this job"><a id="roomPrev" aria-label="Previous room">&lsaquo;</a><span id="roomName"></span><a id="roomNext" aria-label="Next room">&rsaquo;</a></nav><span class="right"><button type="button" class="scanbtn" data-scan>Scan</button><span id="count"></span></span></div>
+<div class="strip"><span><a href="./" id="backLink" title="All jobs"><img class="brandlogo" src="logo-mark.png" alt="">&lsaquo; Jobs</a> · <b id="job">–</b> · <span id="room">Room 1</span></span><nav class="roomnav" id="roomNav" hidden aria-label="Rooms in this job"><a id="roomPrev" aria-label="Previous room">&lsaquo;</a><span id="roomName"></span><a id="roomNext" aria-label="Next room">&rsaquo;</a></nav><span class="right"><span class="docbtns" id="docBtns" hidden role="group" aria-label="Job PDFs"><button type="button" data-doc="shop" aria-pressed="false">Shop drawings</button><button type="button" data-doc="assembly" aria-pressed="false">Assembly</button><button type="button" data-doc="hardware" aria-pressed="false">Hardware</button></span><button type="button" class="scanbtn" data-scan>Scan</button><span id="count"></span></span></div>
 <main class="home" id="home" hidden>
   <div class="in">
     <nav class="crumbs" id="crumbs" aria-label="Where you are" hidden></nav>
@@ -390,6 +408,13 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
   <div class="specs" id="pspecs"></div>
 </div>
 
+<section class="docview" id="docView" hidden aria-label="Job PDF">
+  <div class="dvbar"><b id="dvTitle"></b><select id="dvSel" aria-label="Which PDF" hidden></select>
+    <span class="dvz"><button type="button" id="dvOut" aria-label="Zoom out">&minus;</button><span id="dvPct">100%</span><button type="button" id="dvIn" aria-label="Zoom in">+</button></span>
+    <button type="button" id="dvUp">Upload PDF</button><input type="file" id="dvFile" accept="application/pdf" hidden>
+    <button type="button" class="dvclose" id="dvClose">Close</button></div>
+  <div class="dvbody" id="dvBody"></div>
+</section>
 <div class="scan" id="scan" hidden>
   <video id="scanVideo" playsinline muted></video>
   <div class="frame" aria-hidden="true"></div>
@@ -1629,6 +1654,7 @@ function isolate(g){
   hintText(); paint();
   if (!$('sheet').hidden) buildSheet();
   $('vElev').hidden = on || !elevs.length;
+  sectionScope(on);
   sideLists();
   requestAnimationFrame(() => { resize(); reframe(); });
 }
@@ -1696,6 +1722,21 @@ function hwItem(c, n){
   if (/countertop/i.test(n)) return 'Benchtop (CV)';
   return (n.replace(/^(Base|Upper|Tall|Vanity|Appliance)?\s*Cabinet\s*(Widget\s*)?/i, '') || c) + (c ? ' · ' + c : '');
 }
+// a drawer's system, from the metal sides CV draws for it: Blum Legrabox sides are ~12.7 mm thick, as long as
+// the runner (550 = 550 mm) and one of five heights (N 66.5, M 90.5, K 128.5, C 177, F 241); colour from the model
+const LEGRA = [['N', 66.5], ['M', 90.5], ['K', 128.5], ['C', 177], ['F', 241]];
+function drawerSpec(mv){
+  const sides = (mv.m.ctx || []).map(i => hardware[i]).filter(h => h && /^_DGSIDE$/i.test(h.p.c || ''));
+  if (!sides.length) return {name: 'Drawer', runners: true};
+  const z = sides[0].box.getSize(new THREE.Vector3()), dims = [z.x, z.z].sort((a, b) => a - b), t = dims[0], len = dims[1], h = z.y;
+  const nominal = Math.round(len / 10) * 10;
+  const m = sides[0].meshes[0] && sides[0].meshes[0].material, c = m && (m.userData.fallback || m.userData.base || m.color);
+  const lum = c ? 0.3 * c.r + 0.59 * c.g + 0.11 * c.b : 0.5;
+  const colour = lum > 0.75 ? 'white' : lum < 0.2 ? 'black' : 'grey';
+  const code = LEGRA.find(([, v]) => Math.abs(v - h) <= 5);
+  if (t > 10 && t < 15 && code) return {name: 'Legrabox ' + nominal + ' ' + code[0] + ' · ' + colour, runners: false};
+  return {name: 'Drawer · ' + nominal + ' runner (side ' + Math.round(h) + ' high)', runners: false};
+}
 // banding in a few characters: "2 · NENE" (edges taped, then CV's code without its leading count)
 function bandShort(code){
   const m = String(code || '').match(/^(\d*)([A-Z]+)$/i); if (!m) return code || '';
@@ -1738,7 +1779,7 @@ function buildCutList(){
   // hardware: drawers (from the drawers that open), hinges, handles, drawer systems, rails...
   const hw = new Map(), add = (name, n) => hw.set(name, (hw.get(name) || 0) + n);
   const drawers = movers.filter(mv => mv.m.t === 'drawer' && parts[mv.m.f] && isoGs.has(parts[mv.m.f].p.g));
-  if (drawers.length){ add('Drawer', drawers.length); add('Drawer runners (pair)', drawers.length); }
+  for (const mv of drawers){ const d = drawerSpec(mv); add(d.name, 1); if (d.runners) add('Drawer runners (pair)', 1); }
   const doors = movers.filter(mv => mv.m.t === 'door' && !mv.m.fixed && parts[mv.m.f] && isoGs.has(parts[mv.m.f].p.g));
   if (doors.length) add('Door (opening)', doors.length);
   for (const h of hardware) if (isoGs.has(h.p.g) && h.p.k === 'hw'){ const it = hwItem(h.p.c, h.p.n); if (it) add(it, 1); }
@@ -2103,6 +2144,105 @@ $('nEdit').onsubmit = async ev => {
   if (!r.ok) return alertNote(r.error);
   jobNotes.push(r.note); closeNoteEditor(); listNotes(); scanToast('Note saved');
 };
+// ---- job PDFs: shop drawings, assembly sheets, hardware sheets. The sync publishes the ones saved next to the
+// job's DAE; any extra can be uploaded here (settings PIN) and are kept in the team's Google Drive.
+const DOC_T = {shop: 'Shop drawings', assembly: 'Assembly sheets', hardware: 'Hardware sheets'};
+let jobDocs = [], upDocs = [], docT = 'shop', docPdf = null, docZoom = 1, docObs = null, docCur = null;
+const docsOf = t => jobDocs.filter(d => d.t === t).concat(upDocs.filter(d => d.t === t));
+function docButtons(){
+  $('docBtns').hidden = false;
+  $('docBtns').querySelectorAll('button').forEach(b => { const n = docsOf(b.dataset.doc).length; b.classList.toggle('none', !n);
+    b.title = DOC_T[b.dataset.doc] + (n ? ' (' + n + ')' : ' - none yet, tap to upload'); });
+}
+async function loadDocs(){ const r = await api({pf: 'docs', job: FOLDER}, 12000); upDocs = r.ok && Array.isArray(r.docs) ? r.docs : []; docButtons(); }
+const PDFJS = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+let pdfjsP = null;
+function loadPdfjs(){
+  if (!pdfjsP) pdfjsP = new Promise((ok, fail) => {
+    const s = document.createElement('script'); s.src = PDFJS + 'pdf.min.js';
+    s.onload = () => { pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS + 'pdf.worker.min.js'; ok(pdfjsLib); };
+    s.onerror = () => { pdfjsP = null; fail(new Error('the PDF viewer did not load - check the internet connection')); };
+    document.head.appendChild(s);
+  });
+  return pdfjsP;
+}
+function docMsg(html){ $('dvBody').innerHTML = '<div class="dvmsg">' + html + '</div>'; }
+function openDocs(t){
+  docT = t; $('docView').hidden = false; $('dvTitle').textContent = DOC_T[t];
+  $('docBtns').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.doc === t)));
+  const list = docsOf(t), sel = $('dvSel');
+  sel.innerHTML = list.map((d, i) => '<option value="' + i + '">' + esc(d.name) + (d.up ? ' (uploaded)' : '') + '</option>').join('');
+  sel.hidden = list.length < 2;
+  if (!list.length){ closePdf(); docMsg('No ' + DOC_T[t].toLowerCase() + ' for this job yet.<br><small>Save the PDF next to the job\'s 3D model (DAE) with "' +
+    {shop: 'Shop Drawings', assembly: 'Assembly', hardware: 'Hardware'}[t] + '" in its name and the next sync adds it - or upload one now.</small>'); return; }
+  showDoc(list[0]);
+}
+function closePdf(){ if (docObs){ docObs.disconnect(); docObs = null; } if (docPdf){ docPdf.destroy(); docPdf = null; } }
+async function showDoc(d){
+  closePdf(); docCur = d; docMsg('Opening ' + esc(d.name) + '…');
+  try {
+    const lib = await loadPdfjs();
+    let src;
+    if (d.f) src = {url: d.f};
+    else {
+      const r = await api({pf: 'doc.get', id: d.id}, 120000); if (!r.ok) throw new Error(r.error);
+      const bin = atob(r.b64), bytes = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      src = {data: bytes};
+    }
+    if (docCur !== d) return;
+    docPdf = await lib.getDocument(src).promise;
+    layoutDoc();
+  } catch (e){ docMsg('Could not open it: ' + esc((e && e.message) || e)); }
+}
+// pages are laid out at once (right size, blank) and drawn as they scroll into view
+async function layoutDoc(){
+  const pdf = docPdf; if (!pdf) return;
+  const body = $('dvBody'), ratio = body.scrollTop / Math.max(1, body.scrollHeight);
+  body.innerHTML = ''; if (docObs) docObs.disconnect();
+  const first = await pdf.getPage(1), w0 = first.getViewport({scale: 1}).width;
+  const cssW = Math.max(200, (body.clientWidth - 24) * docZoom), dpr = Math.min(devicePixelRatio || 1, 2);
+  $('dvPct').textContent = Math.round(docZoom * 100) + '%';
+  docObs = new IntersectionObserver(es => es.forEach(async en => {
+    if (!en.isIntersecting || en.target.dataset.done) return;
+    en.target.dataset.done = '1';
+    try {
+      const page = await pdf.getPage(+en.target.dataset.n), vp = page.getViewport({scale: cssW / page.getViewport({scale: 1}).width * dpr});
+      const c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height; c.style.width = '100%';
+      await page.render({canvasContext: c.getContext('2d'), viewport: vp}).promise;
+      en.target.innerHTML = ''; en.target.appendChild(c);
+    } catch (_) {}                                  // (closed or zoomed while drawing: that page is drawn again or not needed)
+  }), {root: body, rootMargin: '600px 0px'});
+  for (let n = 1; n <= pdf.numPages; n++){
+    const page = n === 1 ? first : await pdf.getPage(n), v = page.getViewport({scale: 1});
+    const div = document.createElement('div'); div.className = 'dvpage'; div.dataset.n = n;
+    div.style.width = cssW + 'px'; div.style.height = (cssW * v.height / v.width) + 'px';
+    div.innerHTML = '<span>' + n + ' / ' + pdf.numPages + '</span>';
+    body.appendChild(div); docObs.observe(div);
+  }
+  body.scrollTop = ratio * body.scrollHeight;
+}
+$('docBtns').querySelectorAll('button').forEach(b => b.onclick = () => openDocs(b.dataset.doc));
+$('dvClose').onclick = () => { closePdf(); $('docView').hidden = true; $('docBtns').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', 'false')); };
+$('dvSel').onchange = () => showDoc(docsOf(docT)[+$('dvSel').value]);
+$('dvIn').onclick = () => { docZoom = Math.min(4, docZoom * 1.25); layoutDoc(); };
+$('dvOut').onclick = () => { docZoom = Math.max(0.5, docZoom / 1.25); layoutDoc(); };
+$('dvUp').onclick = () => {
+  if (!pinOk){ const p = prompt('Settings PIN to upload a PDF'); if (!p) return; pinOk = p; }
+  $('dvFile').value = ''; $('dvFile').click();
+};
+$('dvFile').onchange = async () => {
+  const f = $('dvFile').files[0]; if (!f) return;
+  if (f.size > 30e6) return docMsg('That PDF is over 30 MB - save it next to the job\'s DAE instead (the sync publishes any size up to 90 MB).');
+  docMsg('Uploading ' + esc(f.name) + '…');
+  const b64 = await new Promise(ok => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1]); r.readAsDataURL(f); });
+  const r = await api({pf: 'doc.put', pin: pinOk, job: FOLDER, t: docT, name: f.name, b64}, 180000);
+  if (!r.ok){ if (r.error === 'wrong PIN'){ pinOk = ''; } return docMsg('Not uploaded: ' + esc(r.error)); }
+  try { sessionStorage.setItem('pf-pin', pinOk); } catch (_) {}
+  upDocs.push(r.doc); docButtons(); openDocs(docT);
+  const i = docsOf(docT).indexOf(r.doc); $('dvSel').value = i; showDoc(r.doc);
+};
+let docResizeT = 0;
+new ResizeObserver(() => { if (docPdf && !$('docView').hidden){ clearTimeout(docResizeT); docResizeT = setTimeout(layoutDoc, 250); } }).observe($('dvBody'));
 // the job's folder (rooms of one job together, or as Settings set it) - for its notes and the Back link
 (async () => {
   const [jobs] = await Promise.all([jobIndex(), loadDash()]);
@@ -2118,6 +2258,7 @@ $('nEdit').onsubmit = async ev => {
         $('roomPrev').href = go(-1); $('roomNext').href = go(1); $('roomNav').hidden = false; }
     }
   }
+  jobDocs = (e && e.docs) || []; loadDocs();
   await loadNotes();
   const want = Q.get('note');
   if (want){ const n = jobNotes.find(x => x.id === want); if (n){ openNotes(true); goNote(n); } }
@@ -2233,6 +2374,16 @@ $('vSection').onclick = () => openSection($('spanel').hidden);
 $('sDone').onclick = () => openSection(false);
 $('sReset').onclick = () => { for (const k of Object.keys(SEC)){ $('s' + k).value = 1000; $('s' + k + 'f').setAttribute('aria-pressed', 'false'); } applySection(); };
 applySection(); secLines.visible = false;
+// a section taken inside an isolated cabinet cuts just that cabinet (sliders span it), and leaving it puts the
+// job back whole
+const jobSecBox = secBox.clone();
+function sectionScope(inCab){
+  if (inCab) secBox.copy(boxOf(parts.concat(hardware.filter(h => !WALLK(h.p.k) && h.p.k !== 'room')).filter(x => isoGs.has(x.p.g)))).expandByScalar(2);
+  else secBox.copy(jobSecBox);
+  for (const k of Object.keys(SEC)){ $('s' + k).value = 1000; $('s' + k + 'f').setAttribute('aria-pressed', 'false'); }
+  applySection();
+  if (!inCab && !$('spanel').hidden) openSection(false);
+}
 
 // ---- measure: two taps, snapped to the nearest corner, edge middle or edge (else the surface), in mm to 2 places ----
 let measuring = false, mFirst = null, mHover = null;
