@@ -23,8 +23,8 @@
 :root[data-theme="dark"]{
   /* Part Finder runs dark, matched to the CN Fitouts logo: black, logo cyan, white */
   --brand:#000000; --mid:#0094c4; --cyan:#00A8D8; --pale:#0d2630;
-  --bg:#050607; --stage:#000000; --card:#101417; --fg:#eef6f9; --muted:#8ea3ad; --line:#232c32;
-  --hi:#00A8D8; --hi-ink:#00141b; --panel:#5b5852; --edge:#9fb1ba; --ghost:#46545b; color-scheme:dark}
+  --bg:#050607; --stage:#2e3236; --card:#101417; --fg:#eef6f9; --muted:#8ea3ad; --line:#232c32;
+  --hi:#00A8D8; --hi-ink:#00141b; --panel:#5b5852; --edge:#9fb1ba; --ghost:#66767e; color-scheme:dark}
 html,body{height:100%}
 body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:15px;display:flex;flex-direction:column;overflow:hidden}
 .strip{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 16px;background:var(--brand);color:#cfe9f5;font-size:13px;letter-spacing:.06em;text-transform:uppercase;border-bottom:3px solid var(--cyan)}
@@ -1125,11 +1125,14 @@ const walls = hardware.filter(h => WALLK(h.p.k));
   sun.position.copy(sun.target.position).add(new THREE.Vector3(0.22, 1, 0.3).normalize().multiplyScalar(size.y + r * 2));
   const sc = sun.shadow.camera; sc.left = sc.bottom = -r; sc.right = sc.top = r; sc.near = 10; sc.far = size.y + r * 4; sc.updateProjectionMatrix();
 }
+// walls and ceilings keep CV's finish when it has a picture (brick, tile, render, a paint swatch);
+// plain CV colours (its default greys and whites) become one soft off-white
+const plainWall = m => !(MATS[m.userData.mi] && MATS[m.userData.mi].t);
 for (const w of walls){
-  for (const m of w.meshes){ m.material.map = null; m.material.color.set(0xe4e1db); m.material.userData.base = m.material.color.clone(); m.material.needsUpdate = true; }
+  for (const m of w.meshes) if (plainWall(m)){ m.material.map = null; m.material.color.set(0xe4e1db); m.material.userData.base = m.material.color.clone(); m.material.needsUpdate = true; }
   const s = w.box.getSize(new THREE.Vector3()), c = w.box.getCenter(new THREE.Vector3());
   if (w.p.k === 'ceiling'){                               // faces down into the room: from above you see through it
-    for (const m of w.meshes){ m.material.color.set(0xf1efea); m.material.userData.base = m.material.color.clone(); }
+    for (const m of w.meshes) if (plainWall(m)){ m.material.color.set(0xf1efea); m.material.userData.base = m.material.color.clone(); }
     w.inward = new THREE.Vector3(0, -1, 0); w.face = c.clone().setY(w.box.min.y); w.fade = 1; continue;
   }
   const n = s.x < s.z ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 0, 1);
@@ -1564,11 +1567,52 @@ function cabFront(cab){
   // corner cabinets face two ways, so average the facing of all their fronts
   const mvs = [...new Set(cab.map(x => x.mover).filter(m => m && !m.m.inner && m.front && cab.includes(m.front)))];
   const fronts = cab.filter(x => /DSLAB|DOOR|DF/i.test(x.p.code || ''));
-  if (!fronts.length) return null;
-  const c = boxOf(fronts).getCenter(new THREE.Vector3());
   const dir = new THREE.Vector3(); mvs.forEach(m => dir.add(m.n));
-  if (dir.length() > 0.1){ const ctr = boxOf(cab).getCenter(new THREE.Vector3()); const p = ctr.clone().addScaledVector(dir.normalize(), 1000); p.y = c.y; return p; }
-  return c;
+  if (fronts.length){
+    const c = boxOf(fronts).getCenter(new THREE.Vector3());
+    if (dir.length() > 0.1){ const ctr = boxOf(cab).getCenter(new THREE.Vector3()); const p = ctr.clone().addScaledVector(dir.normalize(), 1000); p.y = c.y; return p; }
+    return c;
+  }
+  // no doors or drawers (wine racks, open shelving, fillers, kickers): work out which way it faces
+  const f = cabFacing(cab); if (!f) return null;
+  return boxOf(cab).getCenter(new THREE.Vector3()).addScaledVector(f, 1000);
+}
+// which way a cabinet with no fronts faces (level unit vector): away from its back panel or back toe, out from
+// the wall it stands against, the way the nearest cabinet with doors faces, or the way the whole job faces
+function cabFacing(cab, deep){
+  if (!cab.length) return null;
+  const box = boxOf(cab), ctr = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3());
+  const flat = v => { v.y = 0; if (v.length() < 1e-6) return null; v.normalize();       // (snap to the cabinet's own square)
+    return Math.abs(v.x) > Math.abs(v.z) ? new THREE.Vector3(Math.sign(v.x), 0, 0) : new THREE.Vector3(0, 0, Math.sign(v.z)); };
+  const named = re => cab.filter(x => re.test(x.p.name || '') && !/drawer/i.test(x.p.name || ''));
+  const backs = cab.filter(x => /^(UB|BK|FB|BACK)$/i.test(x.p.code || '')).concat(named(/\bback\b/i)).filter(x => !/internal|removable/i.test(x.p.name || ''));
+  if (backs.length){ const v = flat(ctr.clone().sub(boxOf(backs).getCenter(new THREE.Vector3()))); if (v) return v; }
+  const ft = named(/front (toe|kick)/i), bt = named(/back toe/i);
+  if (ft.length && bt.length){ const v = flat(boxOf(ft).getCenter(new THREE.Vector3()).sub(boxOf(bt).getCenter(new THREE.Vector3()))); if (v) return v; }
+  // set into a wall (an arch or recess in a thick wall): it faces out of that wall
+  for (const w of walls) if (w.p.k === 'wall' && w.inward && ctr.x > w.box.min.x && ctr.x < w.box.max.x && ctr.z > w.box.min.z && ctr.z < w.box.max.z) return w.inward.clone();
+  // the wall right behind it
+  let best = null, bd = Infinity;
+  for (const w of walls){
+    if (w.p.k !== 'wall' || !w.inward) continue;
+    const d = ctr.clone().sub(w.face).dot(w.inward), reach = (Math.abs(w.inward.x) > .5 ? size.x : size.z) / 2 + 600;
+    if (d <= 0 || d > reach) continue;
+    const along = Math.abs(w.inward.x) > .5 ? 'z' : 'x';                      // (and beside it, not past its end)
+    if (box.max[along] < w.box.min[along] - 50 || box.min[along] > w.box.max[along] + 50) continue;
+    if (d < bd){ bd = d; best = w.inward.clone(); }
+  }
+  if (best) return best;
+  if (!deep){                                        // the nearest cabinet that knows which way it faces
+    let nb = null, nd = 2500;
+    for (const g of new Set(parts.map(x => x.p.g))){
+      if (g < 0 || cab[0].p.g === g) continue;
+      const other = parts.filter(x => x.p.g === g), d = boxOf(other).distanceToPoint(ctr);
+      if (d < nd && other.some(x => x.mover)){ nd = d; nb = other; }
+    }
+    if (nb){ const v = cabFront(nb); if (v){ const r = flat(v.sub(boxOf(nb).getCenter(new THREE.Vector3()))); if (r) return r; } }
+  }
+  const jf = jobFront(); if (jf) return flat(jf.sub(boxOf(parts).getCenter(new THREE.Vector3())));
+  return null;
 }
 // the side of the job the doors and drawers face, so the whole-job view opens on the kitchen's face
 function jobFront(){
@@ -1893,6 +1937,7 @@ function buildCutList(){
   }
   if (!mats.length && !hw.size) tb.innerHTML = '<tr><td colspan="5">No cut-list parts in this cabinet</td></tr>';
 }
+var faceCut = false;
 // straight in front of a cabinet, close enough to fill the view with it (and a little of each side)
 function faceView(g){
   if (elevI >= 0){ elevI = -1; camera.fov = ORBIT_FOV; elevLabel(); }
@@ -1903,7 +1948,10 @@ function faceView(g){
   const vf = THREE.MathUtils.degToRad(camera.fov) / 2, hf = Math.atan(Math.tan(vf) * camera.aspect);
   const dist = Math.max(size.y * 0.75 / Math.tan(vf), w * 0.75 / Math.tan(hf), 900) + depth / 2;
   camera.position.copy(c).addScaledVector(dir, dist).add(new THREE.Vector3(0, size.y * 0.15, 0));
-  controls.target.copy(c); camera.near = Math.max(20, dist / 200); camera.far = dist * 20 + 20000; camera.updateProjectionMatrix(); controls.update(); forceFrame = true;
+  // anything between the camera and the cabinet's face (the cabinets across a narrow cellar or galley) is cut away,
+  // until the view is turned
+  controls.target.copy(c); camera.near = Math.max(20, dist - depth / 2 - 250); faceCut = true;
+  camera.far = dist * 20 + 20000; camera.updateProjectionMatrix(); controls.update(); forceFrame = true;
 }
 function sideLists(){
   const quiet = $('npanel').hidden && !measuring && $('spanel').hidden;     // (measuring / cutting: the model needs the room)
@@ -1961,7 +2009,7 @@ function goElev(i){
 }
 $('vElPrev').onclick = () => goElev(elevI - 1);
 $('vElNext').onclick = () => goElev(elevI + 1);
-controls.addEventListener('start', () => { if (elevI >= 0){ camera.near = Math.max(20, camera.position.distanceTo(controls.target) / 200); camera.updateProjectionMatrix(); } });
+controls.addEventListener('start', () => { if (elevI >= 0 || faceCut){ faceCut = false; camera.near = Math.max(20, camera.position.distanceTo(controls.target) / 200); camera.updateProjectionMatrix(); } });
 $('vElev').hidden = !elevs.length;
 
 // tap: open a door/drawer (Solid or isolated) or pick a part; double-tap: isolate that cabinet
