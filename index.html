@@ -922,7 +922,7 @@ const renderer = new THREE.WebGLRenderer({antialias: TUNE && typeof TUNE.aa === 
 renderer.setPixelRatio(Math.min(devicePixelRatio, PHONE ? 1.25 : 1.5));   // (2x on a high-res screen: 4x the pixels for little gain)
 stage.prepend(renderer.domElement);
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(35, 1, 10, 50000);
+const BASE_FOV = 35, camera = new THREE.PerspectiveCamera(BASE_FOV, 1, 10, 50000);
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 // gentler than three.js defaults (all 1.0, damping 0.05): slower turn/zoom/pan with a short, soft glide
@@ -1053,14 +1053,62 @@ function realMaterial(mi, kind){
 }
 renderer.outputEncoding = THREE.sRGBEncoding;
 
-function geo(sub){
+function geo(sub, board){
   const g = new THREE.BufferGeometry();
-  const P = new Float32Array(sub.p), q = JOB.pq || 1;          // pq: positions in 1/pq mm steps (0.01 mm for measuring)
+  let P = new Float32Array(sub.p), U = sub.u && sub.u.length ? sub.u : null, I = sub.i;
+  const q = JOB.pq || 1;                                      // pq: positions in 1/pq mm steps (0.01 mm for measuring)
   if (q !== 1) for (let k = 0; k < P.length; k++) P[k] /= q;
+  if (board){ const w = holeWalls(P, U, I); if (w){ P = w.P; U = w.U; I = w.I; } }
   g.setAttribute('position', new THREE.BufferAttribute(P, 3));
-  if (sub.u && sub.u.length) g.setAttribute('uv', new THREE.Float32BufferAttribute(sub.u, 2));
-  g.setIndex(sub.i); g.computeVertexNormals(); g.computeBoundingBox();
+  if (U) g.setAttribute('uv', new THREE.Float32BufferAttribute(U, 2));
+  g.setIndex(I); g.computeVertexNormals(); g.computeBoundingBox();
   return g;
+}
+// CV's DAE cuts a through-hole (an access cut-out routed in a back, an LED slot, a cable hole) out of both faces of
+// a board but leaves out the hole's walls: you look into the board. Where the same open edge runs round a hole on
+// both faces, the wall between them is put back.
+function holeWalls(P, U, I){
+  const n = P.length / 3; if (n < 12) return null;
+  const lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
+  for (let v = 0; v < n; v++) for (let a = 0; a < 3; a++){ const c = P[v * 3 + a]; if (c < lo[a]) lo[a] = c; if (c > hi[a]) hi[a] = c; }
+  const ext = [hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]], t = ext.indexOf(Math.min(...ext));
+  if (ext[t] < 3 || ext[t] > 60) return null;                    // (boards only)
+  const ax = [0, 1, 2].filter(a => a !== t), id = new Map(), first = [], vid = new Int32Array(n);
+  const r = c => Math.round(c * 10);
+  for (let v = 0; v < n; v++){
+    const k = r(P[v * 3]) + ',' + r(P[v * 3 + 1]) + ',' + r(P[v * 3 + 2]);
+    let i = id.get(k); if (i === undefined){ i = first.length; id.set(k, i); first.push(v); } vid[v] = i;
+  }
+  const cnt = new Map();
+  for (let k = 0; k < I.length; k += 3) for (let e = 0; e < 3; e++){
+    const a = vid[I[k + e]], b = vid[I[k + (e + 1) % 3]]; if (a === b) continue;
+    const key = a < b ? a + '|' + b : b + '|' + a; cnt.set(key, (cnt.get(key) || 0) + 1);
+  }
+  const side = i => { const c = P[first[i] * 3 + t]; return Math.abs(c - hi[t]) < .6 ? 1 : Math.abs(c - lo[t]) < .6 ? -1 : 0; };
+  const rim = (a, b) => ax.some(x => { const pa = P[first[a] * 3 + x], pb = P[first[b] * 3 + x];
+    return (Math.abs(pa - lo[x]) < .6 && Math.abs(pb - lo[x]) < .6) || (Math.abs(pa - hi[x]) < .6 && Math.abs(pb - hi[x]) < .6); });
+  const flat = i => r(P[first[i] * 3 + ax[0]]) + ',' + r(P[first[i] * 3 + ax[1]]);
+  const tops = [], bottoms = new Set();
+  for (const [key, c] of cnt){
+    if (c !== 1) continue;
+    const [a, b] = key.split('|').map(Number), s = side(a);
+    if (!s || side(b) !== s || rim(a, b)) continue;
+    const f = [flat(a), flat(b)].sort().join('/');
+    if (s > 0) tops.push([a, b, f]); else bottoms.add(f);
+  }
+  const walls = tops.filter(w => bottoms.has(w[2])); if (!walls.length) return null;
+  const nP = new Float32Array(P.length + walls.length * 12); nP.set(P);
+  const nU = U ? U.slice() : null, nI = Array.from(I); let v = n;
+  for (const [a, b] of walls){
+    const base = v;
+    for (const src of [a, b]) for (const lvl of [hi[t], lo[t]]){
+      const o = first[src] * 3; nP[v * 3] = P[o]; nP[v * 3 + 1] = P[o + 1]; nP[v * 3 + 2] = P[o + 2]; nP[v * 3 + t] = lvl;
+      if (nU) nU.push(U[first[src] * 2], U[first[src] * 2 + 1]);
+      v++;
+    }
+    nI.push(base, base + 2, base + 1, base + 1, base + 2, base + 3);    // (a top, a bottom, b top, b bottom)
+  }
+  return {P: nP, U: nU, I: nI};
 }
 // Outline edges: an edge is drawn when only one face uses it, or its faces meet at a real angle.
 // Ignores zero-area slivers and flipped triangle winding, which otherwise draw stray diagonal lines.
@@ -1091,7 +1139,7 @@ function makeObject(rec, isPart){
   const subs = rec.subs || [{m: -1, p: rec.mesh.p, i: rec.mesh.i}];   // (v1 job files: one plain mesh)
   const meshes = [], edges = [], box = new THREE.Box3();
   for (const s of subs){
-    const g = geo(s);
+    const g = geo(s, isPart);
     const mesh = new THREE.Mesh(g, realMaterial(s.m, isPart ? 'part' : rec.k));
     mesh.castShadow = !WALLK(rec.k) && rec.k !== 'room'; mesh.receiveShadow = true;
     mesh.userData.mi = s.m;
@@ -1118,6 +1166,32 @@ const hardware = JOB.context.map(c => makeObject(c, false));
 const jobCentre = new THREE.Box3(); parts.forEach(x => jobCentre.union(x.box));
 const JC = jobCentre.getCenter(new THREE.Vector3());
 const walls = hardware.filter(h => WALLK(h.p.k));
+// ---- LED strips and CV's lights: a soft warm glow, about 3000 K ----
+// CV draws an LED strip as a tube a few mm across: it gets a glowing bar you can see from across the room, and the
+// strips close together share one dim point light (8 at most: every light costs the tablet on every pixel)
+const BLACK = new THREE.Color(0), LED_COLOR = 0xffb46b, LED_LEVEL = LITE ? 0.45 : 0.6;
+const leds = hardware.filter(h => h.p.k === 'hw' && /userlight|\bled\b|strip ?light|downlight/i.test((h.p.n || '') + ' ' + (h.p.c || '')));
+const ledLights = []; let showLights = true;
+for (const h of leds){
+  for (const m of h.meshes){ m.material.userData.lit = new THREE.Color(LED_COLOR).multiplyScalar(0.8); m.material.emissive.copy(m.material.userData.lit); m.castShadow = false; }
+  const sz = h.box.getSize(new THREE.Vector3());
+  h.glow = new THREE.Mesh(new THREE.BoxGeometry(Math.max(sz.x, 7), Math.max(sz.y, 7), Math.max(sz.z, 7)),
+    new THREE.MeshBasicMaterial({color: 0xffd9ad, transparent: true, opacity: 0.9, depthWrite: false}));
+  h.glow.position.copy(h.box.getCenter(new THREE.Vector3())); h.glow.renderOrder = 3; scene.add(h.glow);
+}
+{
+  const groups = [];
+  for (const h of leds){
+    const c = h.box.getCenter(new THREE.Vector3()), len = Math.max(...h.box.getSize(new THREE.Vector3()).toArray());
+    const gr = groups.find(q => q.c.distanceTo(c) < 700);
+    if (gr){ gr.strips.push(h); gr.len += len; gr.c.lerp(c, 1 / gr.strips.length); } else groups.push({c, strips: [h], len});
+  }
+  groups.sort((a, b) => b.len - a.len);
+  groups.forEach((gr, i) => {
+    if (i < 8){ const L = new THREE.PointLight(LED_COLOR, LED_LEVEL, 1700, 2); L.position.copy(gr.c).add(new THREE.Vector3(0, -40, 0)); scene.add(L); ledLights.push({light: L, strips: gr.strips}); }
+    else ledLights[ledLights.length - 1].strips.push(...gr.strips);      // (the rest follow the last light's on / off)
+  });
+}
 { // the overhead light covers the whole room: shadows under overheads and benchtops, and on the floor
   const all = jobCentre.clone(); hardware.forEach(h => all.union(h.box));
   const size = all.getSize(new THREE.Vector3()), r = Math.max(size.x, size.z) * 0.62 + 300;
@@ -1272,6 +1346,7 @@ $('job').textContent = JOB.job;
 $('count').textContent = byId.size + ' parts';
 
 let sel = null, view = 'cab', solid = true, iso = null, isoSolid = true, tipSel = null, dimsOn = false, dims = null;
+let solo = null;              // (one part on its own, from an isolated cabinet: double-tap the part)
 let selCab = null;
 let isoGs = new Set(), picking = false; const pickSet = new Set();   // isolated cabinets; cabinets being picked
 // bottom card: hidden while a cabinet is isolated or being picked, and when closed. Closing the empty
@@ -1295,7 +1370,7 @@ function setLook(x, opacity, edgeColor, edgeOpacity, tint){
     const mat = m.material;
     mat.opacity = opacity; mat.depthWrite = opacity > .9; mat.visible = opacity > 0.01;   // (fully clear: not drawn at all)
     mat.color.copy(mat.userData.base);
-    mat.emissive.copy(tint || new THREE.Color(0)); mat.userData.glow = !!tint;
+    mat.emissive.copy(tint || mat.userData.lit || BLACK); mat.userData.glow = !!tint;      // (an LED strip keeps its glow)
     m.renderOrder = opacity > .9 ? 2 : 1;
   }
   for (const e of x.edges){ e.material.color.copy(edgeColor); e.material.opacity = edgeOpacity; e.material.visible = edgeOpacity > 0; }
@@ -1308,7 +1383,8 @@ function paint(){
   applyVisibility();
   if (iso !== null){                       // isolated cabinet: solid, or see-through wireframe
     for (const x of parts){
-      if (x === sel || x === tipSel) setLook(x, 1, hi, 1, hi);
+      if (x === solo) setLook(x, isoSolid ? 1 : .35, edge, 1);          // (its own finish, every edge and cut-out drawn)
+      else if (x === sel || x === tipSel) setLook(x, 1, hi, 1, hi);
       else if (isoSolid) setLook(x, 1, edge, 0);
       else setLook(x, .18, edge, .85);
     }
@@ -1453,22 +1529,26 @@ CABS.forEach((c, g) => {
   const sp = badge(no); sp.position.copy(pos); scene.add(sp); labels.push({g, sp});
 });
 function updateLabels(){
-  for (const l of labels) l.sp.visible = iso !== null ? isoGs.has(l.g) : showNums && !hiddenTypes.has(typeOf(l.g));
+  for (const l of labels) l.sp.visible = solo ? false : iso !== null ? isoGs.has(l.g) : showNums && !hiddenTypes.has(typeOf(l.g));
 }
 function applyVisibility(){
   for (const x of parts.concat(hardware)){
     const isHw = !parts.includes(x);
     const k = isHw ? (x.p.k || (x.p.g < 0 ? 'room' : 'hw')) : null;
     let on;
-    if (iso !== null) on = isoGs.has(x.p.g) && !WALLK(k) && k !== 'room';
+    if (solo) on = x === solo;
+    else if (iso !== null) on = isoGs.has(x.p.g) && !WALLK(k) && k !== 'room';
     else if (k === 'wall') on = !hideWalls;
     else if (k === 'ceiling') on = !hideCeiling;
     else if (k === 'room') on = !hideRoom;
     else if (k === 'panel' && x.p.g < 0) on = !hiddenTypes.has('panel');
     else on = !hiddenTypes.has(typeOf(x.p.g)) && !(k === 'hw' && hideHardware);
-    if (hiddenParts.has(x)) on = false;
+    if (hiddenParts.has(x) && x !== solo) on = false;
     for (const ob of x.meshes.concat(x.edges)) ob.visible = on && !(isSheet(ob.userData.mi) && hiddenMats.has(matName(ob.userData.mi)));
+    if (x.glow) x.glow.visible = on && showLights;
   }
+  // (a light that is off goes to zero rather than away: the shaders keep their light count, no stall while they rebuild)
+  for (const L of ledLights) L.light.intensity = showLights && L.strips.some(h => h.glow.visible) ? LED_LEVEL : 0;
   updateLabels();
 }
 const PART_NAMES = {LU:'Left end', RU:'Right end', TO:'Top', BO:'Bottom', DE:'Bottom', UB:'Back', AS:'Adjustable shelf',
@@ -1525,6 +1605,7 @@ function buildSheet(){
     if (walls.some(w => w.p.k === 'ceiling')) body.appendChild(row('Ceiling', 'see-through from above', !hideCeiling, on => hideCeiling = !on));
     body.appendChild(row('Floor, windows & doors', '', !hideRoom, on => hideRoom = !on));
     body.appendChild(row('Hardware & appliances', '', !hideHardware, on => hideHardware = !on));
+    if (leds.length) body.appendChild(row('LED lights', leds.length + ' strips · soft warm light', showLights, on => showLights = on));
     if (typeof ao !== 'undefined' && ao) body.appendChild(row('Soft shading', 'in corners', aoOn, on => { aoOn = on; gaps.length = 0; markDirty(); }));
   } else {
     $('sheetTitle').textContent = 'Parts' + (isoGs.size > 1 ? ' · ' + isoGs.size + ' cabinets' : cabNoOf(iso) ? ' · Cab ' + cabNoOf(iso) : '');
@@ -1547,6 +1628,7 @@ $('sheetClose').onclick = () => openSheet(false);
 
 function boxOf(list){ const b = new THREE.Box3(); list.forEach(x => b.union(x.box)); return b; }
 function frame(box, pad, front){
+  if (camera.fov === EYE_FOV){ camera.fov = BASE_FOV; camera.updateProjectionMatrix(); }   // (back from the room view)
   const size = box.getSize(new THREE.Vector3()), ctr = box.getCenter(new THREE.Vector3());
   const r = Math.max(size.length() / 2, 250);
   const vf = THREE.MathUtils.degToRad(camera.fov) / 2, hf = Math.atan(Math.tan(vf) * camera.aspect);
@@ -1560,6 +1642,34 @@ function frame(box, pad, front){
   camera.position.copy(ctr).addScaledVector(dir, dist);
   camera.near = Math.max(20, dist / 200); camera.far = dist * 20 + 20000; camera.updateProjectionMatrix();
   controls.target.copy(ctr); controls.update();
+}
+// standing in the middle of the room at eye level (1.6 m), looking at the cabinets: a wider lens, like your eyes.
+// Jobs with no walls (a flat-pack, a single cabinet) keep the outside view.
+const EYE_FOV = 62;
+function eyeView(){
+  const ws = walls.filter(w => w.p.k === 'wall'); if (ws.length < 3) return false;
+  const room = new THREE.Box3(); ws.forEach(w => room.union(w.box));
+  const pb = boxOf(parts), floor = Math.min(room.min.y, pb.min.y), rc = room.getCenter(new THREE.Vector3()), pc = pb.getCenter(new THREE.Vector3());
+  let look;
+  const jf = jobFront();                                    // the way the doors face: look back at them
+  if (jf) look = jf.sub(pc).setY(0).negate();
+  if (!look || look.length() < 1){ const ps = pb.getSize(new THREE.Vector3()); look = ps.x > ps.z ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 0, 1); }
+  look.normalize();
+  // stand back from the cabinets far enough to take them in (the room allowing), at eye height
+  const ps = pb.getSize(new THREE.Vector3()), along = Math.abs(look.x) > .5 ? ps.x : ps.z, across = Math.abs(look.x) > .5 ? ps.z : ps.x;
+  const hf = Math.atan(Math.tan(THREE.MathUtils.degToRad(EYE_FOV) / 2) * camera.aspect);
+  const back = along / 2 + Math.max(1800, Math.min(across / 2 / Math.tan(hf) * 0.8, 6000));
+  const eye = pc.clone().addScaledVector(look, -back);
+  eye.x = Math.min(Math.max(eye.x, room.min.x + 300), room.max.x - 300); eye.z = Math.min(Math.max(eye.z, room.min.z + 300), room.max.z - 300);
+  eye.y = floor + 1600;
+  // not behind a wall: a wall between the cabinets and that spot (the end of a cellar) brings the spot in to it
+  const from = new THREE.Vector3(pc.x, eye.y, pc.z), d0 = from.distanceTo(eye), ray = new THREE.Ray(from, eye.clone().sub(from).normalize()), hit = new THREE.Vector3();
+  let near = d0;
+  for (const w of ws) if (!w.box.containsPoint(from) && ray.intersectBox(w.box, hit)) near = Math.min(near, from.distanceTo(hit) - 200);
+  if (near < d0) eye.copy(from).addScaledVector(ray.direction, Math.max(near, 600));
+  camera.fov = EYE_FOV; camera.near = 20; camera.far = 60000; camera.updateProjectionMatrix();
+  camera.position.copy(eye); controls.target.set(pc.x, floor + 1100, pc.z); controls.update();
+  forceFrame = true; markDirty(); return true;
 }
 function cabFront(cab){
   // a point straight out from the cabinet's doors/drawers (uses the fronts' facing, not the box centre,
@@ -1624,6 +1734,7 @@ function jobFront(){
 }
 function reframe(){
   if (typeof elevI !== 'undefined' && elevI >= 0){ elevI = -1; camera.fov = ORBIT_FOV; camera.updateProjectionMatrix(); elevLabel(); }
+  if (solo){ frame(solo.box.clone(), 1.25, cabFront(parts.filter(x => x.p.g === solo.p.g))); return; }
   if (iso !== null){
     const cab = parts.filter(x => isoGs.has(x.p.g));
     // frame the cabinet's own body: long shared parts it happens to own (a rangehood's 2.7 m underpanel)
@@ -1710,14 +1821,15 @@ scanPart = (j, p) => {
 function setView(v){ view = v; $('vCab').setAttribute('aria-pressed', v === 'cab'); $('vJob').setAttribute('aria-pressed', v === 'job'); reframe(); }
 function hintText(){
   $('hint').textContent = picking ? 'Tap cabinets to add or remove them, then press Isolate'
-    : iso !== null ? 'Tap a part for its info (doors open too) · double-tap to go back'
+    : solo ? 'One part on its own · ‹ Prev / Next › for the cabinet\'s other parts · double-tap or Back to the cabinet'
+    : iso !== null ? 'Tap a part for its info (doors open too) · double-tap a part to see it on its own · double-tap empty space to go back'
     : 'Tap a door or drawer to open it · tap a cabinet to select it · double-tap to isolate';
 }
 function isolate(g){
   // g: one cabinet, a list of cabinets, or null for the whole job
   const gs = g === null ? [] : Array.isArray(g) ? g : [g];
   if (!gs.length) g = null;
-  isoGs = new Set(gs); iso = gs.length ? gs[0] : null; exTarget = 0; ex = 0; exDirty = true;
+  isoGs = new Set(gs); iso = gs.length ? gs[0] : null; exTarget = 0; ex = 0; exDirty = true; solo = null;
   if (g !== null) setPicking(false);
   const items = parts.concat(hardware).filter(x => isoGs.has(x.p.g));
   for (const x of parts.concat(hardware)) x.off = null;
@@ -1733,7 +1845,7 @@ function isolate(g){
   } else {
     const p = sel && sel.p; $('room').textContent = (p && p.room) || (parts.find(x => x.p.room) || {p:{}}).p.room || 'Room 1';
   }
-  const on = g !== null;
+  const on = g !== null; $('vBack').textContent = '‹ Back to job';
   $('vCab').hidden = on; $('vJob').hidden = on; $('vSee').hidden = !on;
   isoSolid = true; $('vSee').setAttribute('aria-pressed', false);
   $('vSolid').hidden = on;
@@ -1768,9 +1880,21 @@ function stepCab(d){
   for (const mv of movers) mv.target = 0;
   isolate(order[(i + d + order.length) % order.length]);
 }
-$('vPrev').onclick = () => stepCab(-1);
-$('vNext').onclick = () => stepCab(1);
-$('vBack').onclick = () => { for (const mv of movers) mv.target = 0; isolate(null); };
+$('vPrev').onclick = () => solo ? stepSolo(-1) : stepCab(-1);
+$('vNext').onclick = () => solo ? stepSolo(1) : stepCab(1);
+$('vBack').onclick = () => { if (solo){ soloPart(null); return; } for (const mv of movers) mv.target = 0; isolate(null); };
+// one part on its own (from an isolated cabinet): its own finish, all its edges and cut-outs, turn it round in 3D
+function soloPart(x){
+  solo = x || null;
+  if (solo){ exTarget = 0; ex = 0; exDirty = true; for (const mv of movers) mv.target = 0; $('vExplode').setAttribute('aria-pressed', false); $('vExplode').textContent = 'Explode'; }
+  $('vExplode').hidden = !!solo || iso === null; $('vDims').hidden = !!solo || iso === null;
+  if (dims) dims.visible = !solo && dimsOn;
+  $('vPrev').hidden = $('vNext').hidden = iso === null || (!solo && isoGs.size > 1);
+  $('vBack').textContent = solo ? '‹ Back to cabinet' : '‹ Back to job';
+  showTip(solo); updateLabels(); hintText(); paint(); sideLists(); reframe();
+}
+function soloOrder(){ return parts.filter(x => x.p.g === solo.p.g).sort((a, b) => (parseInt(a.p.id) || 1e9) - (parseInt(b.p.id) || 1e9)); }
+function stepSolo(d){ const o = soloOrder(), i = o.indexOf(solo); soloPart(o[(i + d + o.length) % o.length]); }
 $('vCab').onclick = () => setView('cab');
 $('vJob').onclick = () => setView('job');
 function setSolid(v){ solid = v; $('vSolid').setAttribute('aria-pressed', solid); hintText(); paint(); }
@@ -1875,7 +1999,8 @@ function buildCutList(){
       tr.innerHTML = '<td></td><td></td><td class="sz"></td><td class="bd"></td><td class="nt"></td>';
       const td = tr.children; td[0].textContent = r.xs.length; td[1].textContent = r.name; td[2].textContent = r.size; td[3].textContent = r.band; td[4].textContent = r.note;
       tr.title = 'Part ' + r.xs.map(x => x.p.id).join(', ');
-      tr.onclick = () => { tb.querySelectorAll('tr.on').forEach(q => q.classList.remove('on')); tr.classList.add('on');
+      tr.onclick = () => { if (solo){ soloPart(r.xs[(r.xs.indexOf(solo) + 1) % r.xs.length]); return; }   // (one part on its own: show that one)
+        tb.querySelectorAll('tr.on').forEach(q => q.classList.remove('on')); tr.classList.add('on');
         const i = r.xs.indexOf(tipSel); showTip(r.xs[(i + 1) % r.xs.length]); };   // (tap again: the next one of the same)
       tb.appendChild(tr);
     }
@@ -1941,6 +2066,7 @@ var faceCut = false;
 // straight in front of a cabinet, close enough to fill the view with it (and a little of each side)
 function faceView(g){
   if (elevI >= 0){ elevI = -1; camera.fov = ORBIT_FOV; elevLabel(); }
+  if (camera.fov === EYE_FOV) camera.fov = BASE_FOV;
   const cab = parts.filter(x => x.p.g === g); if (!cab.length) return;
   const box = boxOf(cab), c = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3()), f = cabFront(cab);
   const dir = f ? f.clone().sub(c).setY(0) : new THREE.Vector3(0, 0, 1); if (dir.length() < 1) dir.set(0, 0, 1); dir.normalize();
@@ -2045,7 +2171,11 @@ renderer.domElement.addEventListener('pointerup', e => {
   if (lastTap && now - lastTap.t < 330 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 30){
     clearTimeout(tapTimer); lastTap = null;
     if (picking){ singleTap(x); return; }
-    if (iso !== null){ for (const mv of movers) mv.target = 0; isolate(null); }
+    if (solo){ soloPart(null); return; }
+    if (iso !== null){
+      if (x && parts.includes(x) && isoGs.has(x.p.g)){ soloPart(x); return; }       // double-tap a part: that part on its own
+      for (const mv of movers) mv.target = 0; isolate(null);
+    }
     else if (x && x.p.g !== undefined && x.p.g >= 0) isolate(x.p.g);
     return;
   }
@@ -2096,7 +2226,7 @@ function showTip(x){
   if (p.edges) bits.push('<span>' + esc(edgeText(p.edges)) + '</span>');
   $('tspecs').innerHTML = bits.join('');
   $('tnote').hidden = !p.comment; $('tnote').textContent = p.comment || '';
-  $('tActs').hidden = iso === null;
+  $('tActs').hidden = iso === null || !!solo;
   $('tip').hidden = false; $('hint').hidden = true;
   paint();
 }
@@ -3088,6 +3218,7 @@ function render(t){
 new ResizeObserver(() => { aoSize(); markDirty(); }).observe(stage); aoSize();
 
 resize(); hintText(); fromHash(); sideLists();
+if (!sel && !Q.get('cab') && !Q.get('note')) eyeView();     // (opens standing in the room, not looking in from outside)
 // ---- speed on this computer: the first time Part Finder opens a job here it times real frames (the worst case:
 // shadows redrawn too) and steps quality down until a frame takes under ~25 ms - soft shading off, normal sharpness,
 // smaller shadows, no shadows, lower sharpness. The result is kept for this computer, so later jobs (every scan)
