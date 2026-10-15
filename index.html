@@ -70,6 +70,8 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
 .adj output{width:42px;text-align:right;font:500 13px var(--mono);color:var(--muted)}
 .adj input[type=color]{width:34px;height:28px;padding:0;border:1px solid var(--line);border-radius:6px;background:none;flex:none}
 .adj button{font:500 12px var(--display);padding:5px 8px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer}
+.adjmore{margin-top:12px}
+.adjmore summary{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;cursor:pointer;padding:4px 0}
 .vw{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:15px}
 .vw .vn{flex:1;min-width:0}
 .vw small{display:block;color:var(--muted);font-size:12px}
@@ -1531,7 +1533,20 @@ const finishChoice = {}, lookAdj = {};
 let FG = null;                                                  // finish groups (sheet materials, benchtop), once
 const finishGroupsC = () => FG || (FG = finishGroups());
 const texStem = t => String(t || '').replace(/~[0-9a-f]{8}(?=\.\w+$)/i, '');
-function finishKey(mi){ const d = MATS[mi]; return !d ? 'c:none' : d.t ? 't:' + texStem(d.t) : 'c:' + d.c.getHexString(); }
+// one entry per material the job uses: a cut part by its cut-list (CSV) material, anything else by CV's material name
+// (walls, floor, tiles, stone...), and only unnamed plain colours by colour
+function finishKeyOf(x, m){
+  const mi = m.userData.mi, j = (JOB.materials || [])[mi] || {}, name = String(j.name || '').trim(), d = MATS[mi];
+  if (parts.includes(x) && x.p.material) return 'n:' + String(x.p.material).trim();      // (same name in CV and the cut list: one entry)
+  if (name) return 'n:' + name;
+  if (d && d.t) return 't:' + texStem(d.t);
+  return 'c:' + (d ? d.c.getHexString() : 'none');
+}
+let fkDone = false;
+function fk(m){
+  if (!fkDone){ fkDone = true; for (const x of allObjs()) for (const mm of x.meshes) mm.userData.fk = finishKeyOf(x, mm); }
+  return m.userData.fk || 'c:none';
+}
 function restyle(m){
   const mat = m.material, ud = mat.userData, mi = m.userData.mi;
   if (!ud.base) return;
@@ -1547,21 +1562,21 @@ function restyle(m){
       if (!texUsers[d.t].includes(mat)) texUsers[d.t].push(mat); base.set(0xffffff);
     }
   } else if (choice){ map = null; base.set(choice); }
-  const a = lookAdj[finishKey(mi)];
+  const a = lookAdj[fk(m)];
   if (a){ if (a.c && a.c !== '#ffffff') base.multiply(new THREE.Color(a.c)); if (a.b != null && a.b !== 1) base.multiplyScalar(a.b); }
   if (mat.map !== map){ mat.map = map; mat.needsUpdate = true; }
   ud.base.copy(base); mat.color.copy(base);
 }
-const restyleWhere = test => { for (const x of allObjs()) for (const m of x.meshes) if (test(m.userData.mi)) restyle(m); markDirty(); };
+const restyleWhere = test => { for (const x of allObjs()) for (const m of x.meshes) if (test(m)) restyle(m); markDirty(); };
 function applyFinish(label, choice){
   const idx = finishGroupsC().get(label); if (!idx) return;
   if (choice) finishChoice[label] = choice; else delete finishChoice[label];
-  restyleWhere(mi => idx.has(mi));
+  restyleWhere(m => idx.has(m.userData.mi));
   saveLooks();
 }
 function adjustFinish(key, a){
   if (!a || ((a.b == null || a.b === 1) && (!a.c || a.c === '#ffffff'))) delete lookAdj[key]; else lookAdj[key] = a;
-  restyleWhere(mi => finishKey(mi) === key);
+  restyleWhere(m => fk(m) === key);
   saveLooks();
 }
 // shared: loaded once the page is up, saved (PIN) a moment after the last change
@@ -1736,21 +1751,26 @@ $('sheet').querySelectorAll('.sheettabs button').forEach(b => b.onclick = () => 
 // finish's brightness or tint (the picture CV exported can be paler or darker than the real thing)
 function finishList(){
   const out = new Map();
-  const where = x => parts.includes(x) ? 'Cabinets' : WALLK(x.p.k) ? (x.p.k === 'ceiling' ? 'Ceiling' : 'Walls') : x.p.k === 'room' ? 'Floor & room' : x.p.k === 'panel' ? 'Panels' : 'Hardware & appliances';
+  const where = x => parts.includes(x) ? (x.p.id ? 'Cabinets' : 'Cabinets') : WALLK(x.p.k) ? (x.p.k === 'ceiling' ? 'Ceiling' : 'Walls') : x.p.k === 'room' ? 'Floor & room' : x.p.k === 'panel' ? 'Panels' : 'Hardware & appliances';
   for (const x of allObjs()) for (const m of x.meshes){
-    if (x.glow && leds.includes(x)) continue;
-    const mi = m.userData.mi, k = finishKey(mi); if (!out.has(k)) out.set(k, {k, mi, n: 0, where: {}});
+    const k = fk(m); if (!out.has(k)) out.set(k, {k, mi: m.userData.mi, n: 0, parts: new Set(), where: {}});
     const e = out.get(k); e.n++; const w = where(x); e.where[w] = (e.where[w] || 0) + 1;
+    if (parts.includes(x) && x.p.id) e.parts.add(x);
+    if (MATS[m.userData.mi] && MATS[m.userData.mi].t && !(MATS[e.mi] && MATS[e.mi].t)) e.mi = m.userData.mi;   // (show a picture if it has one)
   }
-  const nice = mi => { const j = (JOB.materials || [])[mi] || {}, d = MATS[mi];
-    if (j.name && !/^[0-9a-f]{8}\s/i.test(j.name)) return j.name;
-    if (d && d.t){ const st = texStem(d.t).replace(/\.\w+$/, '').replace(/_[0-9a-f]{6}$/i, '').replace(/^_?[0-9a-f-]{30,}$/i, 'Custom picture');
-      return st.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim(); }
-    return 'Colour #' + (d ? d.c.getHexString() : '');
+  const nice = e => {
+    const [kind, v] = [e.k.slice(0, 1), e.k.slice(2)], d = MATS[e.mi];
+    if (kind === 'm') return v;
+    if (kind === 'n') return /^[0-9a-f]{8}( [0-9a-f]{4}){3} [0-9a-f]{12}$/i.test(v) ? 'Custom picture' + (d && d.t && /_(?!ffffff)[0-9a-f]{6}/i.test(d.t) ? ' (edited in CV)' : '') : v;
+    if (kind === 't') return v.replace(/\.\w+$/, '').replace(/_[0-9a-f]{6}$/i, '').replace(/[_-]+/g, ' ').trim();
+    return 'Colour #' + v;
   };
   const order = ['Walls', 'Floor & room', 'Ceiling', 'Cabinets', 'Panels', 'Hardware & appliances'];
-  return [...out.values()].map(e => Object.assign(e, {name: nice(e.mi), main: Object.entries(e.where).sort((a, b) => b[1] - a[1])[0][0]}))
-    .sort((a, b) => order.indexOf(a.main) - order.indexOf(b.main) || b.n - a.n);
+  const rank = e => (e.parts.size ? 0 : 1) + (e.k.startsWith('n:') ? 0 : e.k.startsWith('t:') ? 2 : 3);
+  // listed where it matters most: a cut-list material under Cabinets, otherwise where most of it is (hardware last)
+  const mainOf = e => e.parts.size ? 'Cabinets' : Object.entries(e.where).sort((a, b) => (a[0] === 'Hardware & appliances') - (b[0] === 'Hardware & appliances') || b[1] - a[1])[0][0];
+  return [...out.values()].map(e => Object.assign(e, {name: nice(e), main: mainOf(e)}))
+    .sort((a, b) => order.indexOf(a.main) - order.indexOf(b.main) || rank(a) - rank(b) || b.n - a.n);
 }
 function buildTextures(body, sec){
   const groups = finishGroupsC();
@@ -1760,15 +1780,24 @@ function buildTextures(body, sec){
     [...groups.keys()].sort((a, b) => (a === 'Benchtop surface') - (b === 'Benchtop surface') || a.localeCompare(b))
       .forEach(label => body.appendChild(finishRow(label, opts)));
   }
-  let last = '';
-  for (const e of finishList()){
-    if (e.main !== last){ sec(e.main); last = e.main; }
+  let last = '', into = body;
+  const list = finishList();
+  for (const e of list){
+    if (e.main !== last){
+      last = e.main;
+      if (e.main === 'Hardware & appliances'){           // (lots of small plain colours: tucked away)
+        const dt = document.createElement('details'); dt.className = 'adjmore';
+        dt.innerHTML = '<summary></summary>'; dt.firstChild.textContent = 'Hardware & appliances · ' + list.filter(x => x.main === e.main).length;
+        body.appendChild(dt); into = dt;
+      } else { sec(e.main); into = body; }
+    }
     const d = MATS[e.mi], a = lookAdj[e.k] || {b: 1, c: '#ffffff'};
     const el = document.createElement('div'); el.className = 'adj';
     el.innerHTML = '<div class="ah"><span class="sw"></span><span class="an"><span class="nm"></span><small></small></span><button type="button" class="ax">Reset</button></div>' +
       '<div class="ac"><input type="range" min="30" max="200" step="5" aria-label="Brightness"><output></output><input type="color" aria-label="Colour tint"></div>';
     el.querySelector('.nm').textContent = e.name;
-    el.querySelector('small').textContent = Object.entries(e.where).map(([w, n]) => w.toLowerCase() + (n > 1 ? ' ×' + n : '')).join(' · ');
+    el.querySelector('small').textContent = (e.parts.size ? 'cut list · ' + e.parts.size + ' part' + (e.parts.size > 1 ? 's' : '') + ' · ' : '') +
+      Object.entries(e.where).map(([w, n]) => w.toLowerCase() + (n > 1 ? ' ×' + n : '')).join(' · ');
     const sw = el.querySelector('.sw'), rng = el.querySelector('input[type=range]'), out = el.querySelector('output'), col = el.querySelector('input[type=color]');
     const show = () => { const b = +rng.value / 100; out.textContent = rng.value + '%';
       sw.style.backgroundColor = '#' + (d ? d.c.getHexString() : 'cccccc');
@@ -1776,11 +1805,11 @@ function buildTextures(body, sec){
       sw.style.filter = 'brightness(' + b + ')'; sw.style.boxShadow = col.value !== '#ffffff' ? 'inset 0 0 0 30px ' + col.value + '66' : ''; };
     rng.value = Math.round((a.b == null ? 1 : a.b) * 100); col.value = a.c || '#ffffff'; show();
     const set = () => { show(); adjustFinish(e.k, {b: +rng.value / 100, c: col.value}); };
-    rng.oninput = () => { show(); lookAdj[e.k] = {b: +rng.value / 100, c: col.value}; restyleWhere(mi => finishKey(mi) === e.k); };
-    rng.onchange = set; col.oninput = () => { show(); lookAdj[e.k] = {b: +rng.value / 100, c: col.value}; restyleWhere(mi => finishKey(mi) === e.k); };
+    rng.oninput = () => { show(); lookAdj[e.k] = {b: +rng.value / 100, c: col.value}; restyleWhere(m => fk(m) === e.k); };
+    rng.onchange = set; col.oninput = () => { show(); lookAdj[e.k] = {b: +rng.value / 100, c: col.value}; restyleWhere(m => fk(m) === e.k); };
     col.onchange = set;
     el.querySelector('.ax').onclick = () => { rng.value = 100; col.value = '#ffffff'; set(); };
-    body.appendChild(el);
+    into.appendChild(el);
   }
   const b = document.createElement('div'); b.className = 'sheetbtns';
   b.innerHTML = '<button type="button">Reset all finishes</button>';
