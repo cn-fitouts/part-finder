@@ -57,6 +57,25 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
 .fin .tl{flex:1;min-width:0}
 .fin select{font:500 13px var(--display);padding:5px 6px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--fg);max-width:46%}
 .fin input[type=color]{width:30px;height:26px;padding:0;border:1px solid var(--line);border-radius:6px;background:none;flex:none}
+.sheettabs{display:flex;gap:4px}
+.sheethead .sheettabs button{border-color:transparent;background:none;color:var(--muted);padding:6px 10px}
+.sheethead .sheettabs button[aria-selected="true"]{background:var(--mid);color:#fff;border-color:var(--mid)}
+.adj{padding:9px 0;border-bottom:1px solid var(--line)}
+.adj .ah{display:flex;align-items:center;gap:10px;font-size:15px}
+.adj .ah .sw{width:22px;height:22px;border-radius:4px;border:1px solid var(--line);flex:none;background-size:cover}
+.adj .ah .an{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.adj .ah small{display:block;color:var(--muted);font-size:12px}
+.adj .ac{display:flex;align-items:center;gap:8px;margin-top:6px}
+.adj input[type=range]{flex:1;min-width:0;accent-color:var(--cyan);height:28px}
+.adj output{width:42px;text-align:right;font:500 13px var(--mono);color:var(--muted)}
+.adj input[type=color]{width:34px;height:28px;padding:0;border:1px solid var(--line);border-radius:6px;background:none;flex:none}
+.adj button{font:500 12px var(--display);padding:5px 8px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer}
+.vw{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:15px}
+.vw .vn{flex:1;min-width:0}
+.vw small{display:block;color:var(--muted);font-size:12px}
+.vw button{font:500 13px var(--display);padding:6px 10px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer}
+.vw button.go{border-color:var(--mid);color:var(--cyan)}
+.views button#vSave{border-color:#e0a030;color:#ffc35a}
 .sheet h3{margin:12px 0 4px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
 .tog{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);cursor:pointer;font-size:15px}
 .tog input{width:20px;height:20px;accent-color:var(--hi);flex:none}
@@ -409,8 +428,9 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
       <button id="vSee" aria-pressed="false" hidden title="See-through view">See-through</button>
     </div>
     <div class="vg velev" id="vElev" role="group" aria-label="Wall elevations" hidden>
-      <i class="vcap">Walls</i><button id="vElPrev" aria-label="Previous wall">&lsaquo;</button><span id="vElName">3D</span><button id="vElNext" aria-label="Next wall">&rsaquo;</button>
+      <i class="vcap">Walls</i><button id="vElPrev" aria-label="Previous wall or saved view">&lsaquo;</button><span id="vElName">3D</span><button id="vElNext" aria-label="Next wall or saved view">&rsaquo;</button>
     </div>
+    <div class="vg" role="group" aria-label="Saved views"><button id="vSave" title="Save this view - the room, a cabinet or a part on its own - to come back to it with the arrows">&#9733; Save view</button></div>
     <div class="vg" role="group" aria-label="Cabinets">
       <button id="vMulti" aria-pressed="false" title="Pick several cabinets to view together">Select cabs</button>
       <button id="vGo" hidden>Isolate</button>
@@ -480,7 +500,8 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
     <div class="tacts" id="tActs" hidden><button type="button" id="tHide">Hide this part</button></div>
   </section>
   <section class="sheet" id="sheet" hidden aria-label="Show or hide">
-    <div class="sheethead"><b id="sheetTitle">Show / hide</b><button type="button" id="sheetClose" aria-label="Close">Done</button></div>
+    <div class="sheethead"><span class="sheettabs" role="tablist"><button type="button" role="tab" data-tab="show" id="tabShow">Show / hide</button><button type="button" role="tab" data-tab="tex">Textures</button><button type="button" role="tab" data-tab="views">Views</button></span><button type="button" id="sheetClose" aria-label="Close">Done</button></div>
+    <b id="sheetTitle" hidden></b>
     <div id="sheetBody"></div>
   </section>
 </div>
@@ -1052,6 +1073,21 @@ function texture(file){
   return texCache[file];
 }
 const MATS = (JOB.materials || []).map(m => ({c: new THREE.Color(m.c[0], m.c[1], m.c[2]), t: m.t, s: m.s}));
+// CV saves a finish whose colour was changed in CV as a second copy of its picture, named by the tint
+// (..._808080.jpg beside the original ..._ffffff.jpg) - yet still exports the original on some surfaces (the room's
+// walls). Where a job has the original and exactly one edited copy, the edited copy is used everywhere.
+const TEX_TINT = /^(.*)_([0-9a-f]{6})(~[0-9a-f]{8})?\.(jpe?g|png|bmp)$/i;
+{
+  const fam = new Map();
+  MATS.forEach(d => { const m = d.t && d.t.match(TEX_TINT); if (!m) return;
+    const f = fam.get(m[1].toLowerCase()) || new Map(); fam.set(m[1].toLowerCase(), f); f.set(m[2].toLowerCase(), d); });
+  for (const f of fam.values()){
+    const edited = [...f.keys()].filter(k => k !== 'ffffff');
+    if (!f.has('ffffff') || edited.length !== 1) continue;
+    const e = f.get(edited[0]), origT = f.get('ffffff').t, eT = e.t, eS = e.s;
+    MATS.forEach(d => { if (d.t === origT){ d.t = eT; d.s = eS; } });
+  }
+}
 // how shiny / metallic a finish is: CV only exports colour and picture, so it's read from the finish name
 // (stone and gloss reflect, timber and matt boards don't, handles and steel are metal)
 const METAL = /steel|stainless|alumin|silver|chrome|nickel|brass|bronze|copper|gunmetal|galvan|metal|zinc|titanium/i;
@@ -1489,26 +1525,68 @@ function finishOptions(){
   PRESETS.forEach(([n, c]) => opts.push([n, c]));
   return opts;
 }
-const finishChoice = {};
-const FIN_KEY = 'pf-finish-' + JOB.job;
-try { Object.assign(finishChoice, JSON.parse(localStorage.getItem(FIN_KEY) || '{}')); } catch (_) {}
-function applyFinish(label, choice){
-  const idx = finishGroups().get(label); if (!idx) return;
-  for (const x of allObjs()) for (const m of x.meshes){
-    if (!idx.has(m.userData.mi)) continue;
-    const mat = m.material, ud = mat.userData;
-    if (!ud.orig) ud.orig = {map: mat.map, base: ud.base.clone()};
-    if (!choice){ mat.map = ud.orig.map; ud.base.copy(ud.orig.base); }
-    else if (choice.startsWith('tex:')){
-      const src = MATS[m.userData.mi], d = MATS[+choice.slice(4)];
+// A job's finishes can be swapped (Change finish) and adjusted (Textures tab: brightness and a colour tint). Both are
+// kept by the team's Apps Script per job, so every device shows the same; changing them needs the settings PIN.
+const finishChoice = {}, lookAdj = {};
+let FG = null;                                                  // finish groups (sheet materials, benchtop), once
+const finishGroupsC = () => FG || (FG = finishGroups());
+const texStem = t => String(t || '').replace(/~[0-9a-f]{8}(?=\.\w+$)/i, '');
+function finishKey(mi){ const d = MATS[mi]; return !d ? 'c:none' : d.t ? 't:' + texStem(d.t) : 'c:' + d.c.getHexString(); }
+function restyle(m){
+  const mat = m.material, ud = mat.userData, mi = m.userData.mi;
+  if (!ud.base) return;
+  if (!ud.orig) ud.orig = {map: mat.map, base: ud.base.clone()};
+  let map = ud.orig.map; const base = ud.orig.base.clone();
+  let choice = '';
+  for (const [label, idx] of finishGroupsC()) if (idx.has(mi) && finishChoice[label]){ choice = finishChoice[label]; break; }
+  if (choice && choice.startsWith('tex:')){
+    const src = MATS[mi], d = MATS[+choice.slice(4)];
+    if (d && d.t){
       const sx = (src && src.t ? src.s[0] : 24) / (d.s[0] || 24), sy = (src && src.t ? src.s[1] : 24) / (d.s[1] || 24);
-      const t = JOB.v >= 2 ? textureAt(d.t, sx, sy) : textureAt(d.t, 1 / (d.s[0] || 24), 1 / (d.s[1] || 24));
-      mat.map = t; texUsers[d.t].push(mat); ud.base.set(0xffffff);
-    } else { mat.map = null; ud.base.set(choice); }
-    mat.color.copy(ud.base); mat.needsUpdate = true;
-  }
+      map = JOB.v >= 2 ? textureAt(d.t, sx, sy) : textureAt(d.t, 1 / (d.s[0] || 24), 1 / (d.s[1] || 24));
+      if (!texUsers[d.t].includes(mat)) texUsers[d.t].push(mat); base.set(0xffffff);
+    }
+  } else if (choice){ map = null; base.set(choice); }
+  const a = lookAdj[finishKey(mi)];
+  if (a){ if (a.c && a.c !== '#ffffff') base.multiply(new THREE.Color(a.c)); if (a.b != null && a.b !== 1) base.multiplyScalar(a.b); }
+  if (mat.map !== map){ mat.map = map; mat.needsUpdate = true; }
+  ud.base.copy(base); mat.color.copy(base);
+}
+const restyleWhere = test => { for (const x of allObjs()) for (const m of x.meshes) if (test(m.userData.mi)) restyle(m); markDirty(); };
+function applyFinish(label, choice){
+  const idx = finishGroupsC().get(label); if (!idx) return;
   if (choice) finishChoice[label] = choice; else delete finishChoice[label];
-  try { localStorage.setItem(FIN_KEY, JSON.stringify(finishChoice)); } catch (_) {}
+  restyleWhere(mi => idx.has(mi));
+  saveLooks();
+}
+function adjustFinish(key, a){
+  if (!a || ((a.b == null || a.b === 1) && (!a.c || a.c === '#ffffff'))) delete lookAdj[key]; else lookAdj[key] = a;
+  restyleWhere(mi => finishKey(mi) === key);
+  saveLooks();
+}
+// shared: loaded once the page is up, saved (PIN) a moment after the last change
+let looksT = 0, looksLoaded = false;
+function saveLooks(){
+  if (!looksLoaded) return;
+  clearTimeout(looksT);
+  looksT = setTimeout(async () => {
+    if (!pinOk){ const p = prompt('Settings PIN - finish changes are saved for everyone'); if (!p){ scanToast('Finish changes not saved (no PIN) - they show on this screen only'); return; } pinOk = p; }
+    const r = await api({pf: 'look.save', pin: pinOk, job: ENTRY, by: noteName, looks: {adj: lookAdj, swap: finishChoice}}, 20000);
+    if (!r.ok){ if (r.error === 'wrong PIN') pinOk = ''; scanToast('Finish changes not saved: ' + (r.error || 'try again')); return; }
+    try { sessionStorage.setItem('pf-pin', pinOk); } catch (_) {}
+    scanToast('Finishes saved for everyone');
+  }, 900);
+}
+async function loadLooks(){
+  const r = await api({pf: 'look', job: ENTRY}, 15000);
+  if (r.ok && r.looks){
+    for (const k of Object.keys(finishChoice)) delete finishChoice[k];
+    for (const k of Object.keys(lookAdj)) delete lookAdj[k];
+    Object.assign(finishChoice, r.looks.swap || {}); Object.assign(lookAdj, r.looks.adj || {});
+    restyleWhere(() => true); paint();
+    if (!$('sheet').hidden && sheetTab === 'tex') buildSheet();
+  }
+  looksLoaded = true;
 }
 function finishRow(label, opts){
   const el = document.createElement('div'); el.className = 'fin';
@@ -1535,12 +1613,11 @@ function finishRow(label, opts){
     if (sel.value === 'custom'){ pick.hidden = false; pick.click(); return; }
     pick.hidden = true; applyFinish(label, sel.value); paintSw(sel.value); paint();
   };
-  pick.oninput = () => { applyFinish(label, pick.value); paintSw(pick.value); paint(); };
+  pick.onchange = () => { applyFinish(label, pick.value); paintSw(pick.value); paint(); };
   paintSw(cur);
   el.append(sw, name, sel, pick);
   return el;
 }
-for (const [label, v] of Object.entries(finishChoice)) applyFinish(label, v);
 // ---- cabinet number badges ----
 let showNums = false;
 function cabNoOf(g){
@@ -1607,9 +1684,14 @@ function row(label, sub, on, onChange){
   el.querySelector('input').addEventListener('change', e => { onChange(e.target.checked); applyVisibility(); });
   return el;
 }
+let sheetTab = 'show';
 function buildSheet(){
   const body = $('sheetBody'); body.innerHTML = '';
   const sec = t => { const h = document.createElement('h3'); h.textContent = t; body.appendChild(h); };
+  $('tabShow').textContent = iso === null ? 'Show / hide' : 'Parts';
+  $('sheet').querySelectorAll('.sheettabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === sheetTab)));
+  if (sheetTab === 'tex') return buildTextures(body, sec);
+  if (sheetTab === 'views') return buildViews(body, sec);
   if (iso === null){
     $('sheetTitle').textContent = 'Show / hide';
     sec('Cabinets');
@@ -1622,19 +1704,6 @@ function buildSheet(){
       sec('Sheet materials');
       Object.keys(mats).sort((a, b) => a.localeCompare(b))
         .forEach(n => body.appendChild(row(n, '', !hiddenMats.has(n), on => on ? hiddenMats.delete(n) : hiddenMats.add(n))));
-    }
-    const groups = finishGroups();
-    if (groups.size){
-      sec('Change finishes');
-      const opts = finishOptions();
-      [...groups.keys()].sort((a, b) => (a === 'Benchtop surface') - (b === 'Benchtop surface') || a.localeCompare(b))
-        .forEach(label => body.appendChild(finishRow(label, opts)));
-      if (Object.keys(finishChoice).length){
-        const b = document.createElement('div'); b.className = 'sheetbtns';
-        b.innerHTML = '<button type="button">Reset all finishes</button>';
-        b.querySelector('button').onclick = () => { Object.keys(finishChoice).forEach(l => applyFinish(l, '')); paint(); buildSheet(); };
-        body.appendChild(b);
-      }
     }
     if (labels.length){
       sec('Labels');
@@ -1661,6 +1730,65 @@ function buildSheet(){
     const hw = hardware.filter(h => isoGs.has(h.p.g));
     if (hw.length) body.appendChild(row('Hardware', hw.length + ' items', !hw.every(h => hiddenParts.has(h)), on => hw.forEach(h => on ? hiddenParts.delete(h) : hiddenParts.add(h))));
   }
+}
+$('sheet').querySelectorAll('.sheettabs button').forEach(b => b.onclick = () => { sheetTab = b.dataset.tab; buildSheet(); });
+// ---- Textures tab: every finish in the job - swap the cabinet boards and benchtop for another finish, and nudge any
+// finish's brightness or tint (the picture CV exported can be paler or darker than the real thing)
+function finishList(){
+  const out = new Map();
+  const where = x => parts.includes(x) ? 'Cabinets' : WALLK(x.p.k) ? (x.p.k === 'ceiling' ? 'Ceiling' : 'Walls') : x.p.k === 'room' ? 'Floor & room' : x.p.k === 'panel' ? 'Panels' : 'Hardware & appliances';
+  for (const x of allObjs()) for (const m of x.meshes){
+    if (x.glow && leds.includes(x)) continue;
+    const mi = m.userData.mi, k = finishKey(mi); if (!out.has(k)) out.set(k, {k, mi, n: 0, where: {}});
+    const e = out.get(k); e.n++; const w = where(x); e.where[w] = (e.where[w] || 0) + 1;
+  }
+  const nice = mi => { const j = (JOB.materials || [])[mi] || {}, d = MATS[mi];
+    if (j.name && !/^[0-9a-f]{8}\s/i.test(j.name)) return j.name;
+    if (d && d.t){ const st = texStem(d.t).replace(/\.\w+$/, '').replace(/_[0-9a-f]{6}$/i, '').replace(/^_?[0-9a-f-]{30,}$/i, 'Custom picture');
+      return st.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim(); }
+    return 'Colour #' + (d ? d.c.getHexString() : '');
+  };
+  const order = ['Walls', 'Floor & room', 'Ceiling', 'Cabinets', 'Panels', 'Hardware & appliances'];
+  return [...out.values()].map(e => Object.assign(e, {name: nice(e.mi), main: Object.entries(e.where).sort((a, b) => b[1] - a[1])[0][0]}))
+    .sort((a, b) => order.indexOf(a.main) - order.indexOf(b.main) || b.n - a.n);
+}
+function buildTextures(body, sec){
+  const groups = finishGroupsC();
+  if (groups.size){
+    sec('Change a finish');
+    const opts = finishOptions();
+    [...groups.keys()].sort((a, b) => (a === 'Benchtop surface') - (b === 'Benchtop surface') || a.localeCompare(b))
+      .forEach(label => body.appendChild(finishRow(label, opts)));
+  }
+  let last = '';
+  for (const e of finishList()){
+    if (e.main !== last){ sec(e.main); last = e.main; }
+    const d = MATS[e.mi], a = lookAdj[e.k] || {b: 1, c: '#ffffff'};
+    const el = document.createElement('div'); el.className = 'adj';
+    el.innerHTML = '<div class="ah"><span class="sw"></span><span class="an"><span class="nm"></span><small></small></span><button type="button" class="ax">Reset</button></div>' +
+      '<div class="ac"><input type="range" min="30" max="200" step="5" aria-label="Brightness"><output></output><input type="color" aria-label="Colour tint"></div>';
+    el.querySelector('.nm').textContent = e.name;
+    el.querySelector('small').textContent = Object.entries(e.where).map(([w, n]) => w.toLowerCase() + (n > 1 ? ' ×' + n : '')).join(' · ');
+    const sw = el.querySelector('.sw'), rng = el.querySelector('input[type=range]'), out = el.querySelector('output'), col = el.querySelector('input[type=color]');
+    const show = () => { const b = +rng.value / 100; out.textContent = rng.value + '%';
+      sw.style.backgroundColor = '#' + (d ? d.c.getHexString() : 'cccccc');
+      if (d && d.t) sw.style.backgroundImage = 'url("textures/' + encodeURIComponent(d.t) + '")';
+      sw.style.filter = 'brightness(' + b + ')'; sw.style.boxShadow = col.value !== '#ffffff' ? 'inset 0 0 0 30px ' + col.value + '66' : ''; };
+    rng.value = Math.round((a.b == null ? 1 : a.b) * 100); col.value = a.c || '#ffffff'; show();
+    const set = () => { show(); adjustFinish(e.k, {b: +rng.value / 100, c: col.value}); };
+    rng.oninput = () => { show(); lookAdj[e.k] = {b: +rng.value / 100, c: col.value}; restyleWhere(mi => finishKey(mi) === e.k); };
+    rng.onchange = set; col.oninput = () => { show(); lookAdj[e.k] = {b: +rng.value / 100, c: col.value}; restyleWhere(mi => finishKey(mi) === e.k); };
+    col.onchange = set;
+    el.querySelector('.ax').onclick = () => { rng.value = 100; col.value = '#ffffff'; set(); };
+    body.appendChild(el);
+  }
+  const b = document.createElement('div'); b.className = 'sheetbtns';
+  b.innerHTML = '<button type="button">Reset all finishes</button>';
+  b.querySelector('button').onclick = () => { if (!confirm('Put every finish back to how Cabinet Vision exported it - for everyone?')) return;
+    Object.keys(finishChoice).forEach(k => delete finishChoice[k]); Object.keys(lookAdj).forEach(k => delete lookAdj[k]);
+    restyleWhere(() => true); saveLooks(); paint(); buildSheet(); };
+  body.appendChild(b);
+  const n = document.createElement('p'); n.className = 'nhint'; n.textContent = 'Changes here are saved for everyone (settings PIN).'; body.appendChild(n);
 }
 function openSheet(open){ $('sheet').hidden = !open; $('vLayers').setAttribute('aria-pressed', open); if (open) buildSheet(); }
 $('vLayers').onclick = () => openSheet($('sheet').hidden);
@@ -1908,7 +2036,7 @@ function isolate(g){
   updateCard();
   hintText(); paint();
   if (!$('sheet').hidden) buildSheet();
-  $('vElev').hidden = on || !elevs.length;
+  elevVis();
   sectionScope(on);
   sideLists();
   requestAnimationFrame(() => { resize(); reframe(); });
@@ -2162,14 +2290,20 @@ const elevs = (() => {
     return {n: dirs[i], gs, box, ang: Math.atan2(c.z - mid.z, c.x - mid.x)};
   }).sort((a, b) => a.ang - b.ang);
 })();
+var savedViews = [];
+function elevVis(){ $('vElev').hidden = !(elevs.length + savedViews.length) || (iso !== null && !savedViews.length); }
 function elevLabel(){
   if (elevI < 0){ $('vElName').textContent = '3D'; return; }
+  if (elevI >= elevs.length){ const k = elevI - elevs.length, v = savedViews[k];
+    $('vElName').textContent = v ? '\u2605 ' + v.name + ' · ' + (k + 1) + '/' + savedViews.length : '3D'; return; }
   const nos = elevs[elevI].gs.map(cabNoOf).filter(Boolean).map(Number).filter(n => !isNaN(n)).sort((a, b) => a - b);
   $('vElName').textContent = 'Wall ' + (elevI + 1) + '/' + elevs.length + (nos.length ? ' · ' + (nos.length > 1 ? nos[0] + '–' + nos[nos.length - 1] : nos[0]) : '');
 }
 function goElev(i){
-  if (!elevs.length) return;
-  if (i >= elevs.length) i = -1; if (i < -1) i = elevs.length - 1;
+  const total = elevs.length + savedViews.length; if (!total) return;
+  if (i >= total) i = -1; if (i < -1) i = total - 1;
+  if (i >= elevs.length) return goSaved(i - elevs.length);
+  if (iso !== null){ for (const mv of movers) mv.target = 0; isolate(null); requestAnimationFrame(() => requestAnimationFrame(() => goElev(i))); return; }
   if (i < 0){ elevI = -1; camera.fov = ORBIT_FOV; camera.updateProjectionMatrix(); elevLabel(); reframe(); return; }
   elevI = i; const e = elevs[i], size = e.box.getSize(new THREE.Vector3()), c = e.box.getCenter(new THREE.Vector3());
   const w = e.n.x ? size.z : size.x, depth = e.n.x ? size.x : size.z, h = size.y;
@@ -2184,7 +2318,7 @@ function goElev(i){
 $('vElPrev').onclick = () => goElev(elevI - 1);
 $('vElNext').onclick = () => goElev(elevI + 1);
 controls.addEventListener('start', () => { if (elevI >= 0 || faceCut){ faceCut = false; camera.near = Math.max(20, camera.position.distanceTo(controls.target) / 200); camera.updateProjectionMatrix(); } });
-$('vElev').hidden = !elevs.length;
+elevVis();
 
 // tap: open a door/drawer (Solid or isolated) or pick a part; double-tap: isolate that cabinet
 const ray = new THREE.Raycaster(); let down = null, lastTap = null, tapTimer = null;
@@ -2560,6 +2694,76 @@ function listFixes(){
     ul.appendChild(li);
   }
 }
+// ---- saved views: "Save view" keeps where you are - the room, an isolated cabinet or a part on its own, with the
+// camera - for everyone on the job; the Walls arrows step through the walls and then the saved views
+function findPart(pk){
+  if (!pk) return null;
+  if (!String(pk).startsWith('c:')) return byId.get(String(pk)) || null;
+  const c = new THREE.Vector3().fromArray(String(pk).slice(2).split(',').map(Number)); let best = null, bd = 50;
+  for (const x of parts){ const d = x.box.getCenter(new THREE.Vector3()).distanceTo(c); if (d < bd){ bd = d; best = x; } }
+  return best;
+}
+function goSaved(k){
+  const v = savedViews[k]; if (!v) return; const d = v.view || {};
+  const gs = (d.cabs || []).map(no => cabOrder().find(g => String(cabNoOf(g)) === String(no))).filter(g => g !== undefined);
+  const want = d.mode === 'room' || !gs.length ? null : gs;
+  const same = want === null ? iso === null : iso !== null && isoGs.size === want.length && want.every(g => isoGs.has(g));
+  if (!same){ for (const mv of movers) mv.target = 0; isolate(want === null ? null : want.length === 1 ? want[0] : want); }
+  else if (solo && d.mode !== 'part') soloPart(null);
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (d.mode === 'part'){ const x = findPart(d.part); if (x && solo !== x) soloPart(x); }
+    requestAnimationFrame(() => {
+      if (d.cam && d.cam.length === 6){
+        camera.fov = d.fov || BASE_FOV; camera.position.fromArray(d.cam, 0); controls.target.fromArray(d.cam, 3);
+        const dist = camera.position.distanceTo(controls.target);
+        camera.near = Math.max(20, Math.min(d.near || 0, dist - 50) || dist / 200); camera.far = Math.max(dist * 20 + 20000, 60000);
+        camera.updateProjectionMatrix(); controls.update();
+      }
+      elevI = elevs.length + k; elevVis(); elevLabel(); forceFrame = true; markDirty();
+    });
+  }));
+}
+async function loadViews(){
+  const r = await api({pf: 'views', job: ENTRY}, 15000);
+  savedViews = r.ok && Array.isArray(r.views) ? r.views.sort((a, b) => a.at.localeCompare(b.at)) : [];
+  elevVis(); elevLabel();
+  if (!$('sheet').hidden && sheetTab === 'views') buildSheet();
+  const want = Q.get('view'), k = want ? savedViews.findIndex(v => v.id === want) : -1;
+  if (k >= 0) goSaved(k);
+}
+$('vSave').onclick = async () => {
+  const mode = solo ? 'part' : iso !== null ? 'cab' : 'room';
+  const cabs = iso !== null ? [...isoGs].map(cabNoOf).filter(Boolean).map(String) : [];
+  const pk = solo ? (solo.p.id ? String(solo.p.id) : 'c:' + solo.box.getCenter(new THREE.Vector3()).toArray().map(Math.round).join(',')) : '';
+  const def = mode === 'part' ? 'Cab ' + cabNoOf(solo.p.g) + ' · ' + partLabel(solo) : mode === 'cab' ? 'Cab ' + cabs.join(', ') + ' detail'
+    : elevI >= 0 && elevI < elevs.length ? $('vElName').textContent.replace(/ \d+\/\d+/, '') : 'Room view ' + (savedViews.length + 1);
+  const name = prompt('Name this view (everyone on the job can come back to it)', def); if (name === null) return;
+  const cam = camera.position, tg = controls.target;
+  const view = {mode, cabs, part: pk, cam: [r1(cam.x), r1(cam.y), r1(cam.z), r1(tg.x), r1(tg.y), r1(tg.z)], fov: camera.fov, near: r1(camera.near)};
+  const r = await api({pf: 'view.add', job: ENTRY, name: name.trim() || def, by: noteName, view}, 20000);
+  if (!r.ok) return scanToast('View not saved: ' + (r.error || 'try again'));
+  savedViews.push(r.view); elevVis(); elevI = elevs.length + savedViews.length - 1; elevLabel();
+  scanToast('View saved - the arrows by Walls come back to it');
+};
+function buildViews(body, sec){
+  sec('Saved views · ' + savedViews.length);
+  if (!savedViews.length){ const p = document.createElement('p'); p.className = 'nhint'; p.textContent = 'None yet. Find the detail you want, then press \u2605 Save view - in the room, an isolated cabinet or a part on its own.'; body.appendChild(p); return; }
+  savedViews.forEach((v, k) => {
+    const el = document.createElement('div'); el.className = 'vw';
+    const d = v.view || {}, when = new Date(v.at);
+    el.innerHTML = '<span class="vn"><span></span><small></small></span><button type="button" class="go">Go</button><button type="button" class="del" aria-label="Delete this view">Delete</button>';
+    el.querySelector('.vn span').textContent = v.name;
+    el.querySelector('small').textContent = [d.mode === 'part' ? 'part on its own' : d.mode === 'cab' ? 'cabinet' : 'room', v.by, isNaN(when) ? '' : when.toLocaleDateString('en-AU', {day: 'numeric', month: 'short'})].filter(Boolean).join(' · ');
+    el.querySelector('.go').onclick = () => { openSheet(false); goSaved(k); };
+    el.querySelector('.del').onclick = async () => {
+      if (!confirm('Delete the saved view "' + v.name + '" for everyone?')) return;
+      const r = await api({pf: 'view.del', id: v.id}, 15000);
+      if (!r.ok) return scanToast('Not deleted: ' + (r.error || 'try again'));
+      savedViews = savedViews.filter(x => x !== v); if (elevI >= elevs.length) elevI = -1; elevVis(); elevLabel(); buildSheet();
+    };
+    body.appendChild(el);
+  });
+}
 // back to what the screen showed when the fix was reported: the room, the cabinet or the part on its own, same view
 function goFix(f){
   if (f.job && f.job !== ENTRY){ location.assign('?j=' + encodeURIComponent(f.job) + '&fix=' + encodeURIComponent(f.id)); return; }
@@ -2848,7 +3052,7 @@ new ResizeObserver(() => { if (docPdf && !$('docView').hidden){ clearTimeout(doc
   if (e){ const f = buildFolders(jobs).get(FOLDER) || buildFolders(jobs, null, true).get(FOLDER); folderEntries = f ? f.entries : []; }
   const wantCab = Q.get('cab');                    // (from an assembly sheet page: open that cabinet)
   if (wantCab){ const g = cabOrder().find(gg => String(cabNoOf(gg)) === wantCab); if (g !== undefined) isolate(g); }
-  await loadNotes(); loadFixes();
+  await loadNotes(); loadFixes(); loadViews(); loadLooks();
   const want = Q.get('note');
   if (want){ const n = jobNotes.find(x => x.id === want); if (n){ openNotes(true); goNote(n); } }
 })();
@@ -3367,7 +3571,7 @@ function render(t){
 new ResizeObserver(() => { aoSize(); markDirty(); }).observe(stage); aoSize();
 
 resize(); hintText(); fromHash(); sideLists();
-if (!sel && !Q.get('cab') && !Q.get('note') && !Q.get('fix')) eyeView();     // (opens standing in the room, not looking in from outside)
+if (!sel && !Q.get('cab') && !Q.get('note') && !Q.get('fix') && !Q.get('view')) eyeView();     // (opens standing in the room, not looking in from outside)
 // ---- speed on this computer: the first time Part Finder opens a job here it times real frames (the worst case:
 // shadows redrawn too) and steps quality down until a frame takes under ~25 ms - soft shading off, normal sharpness,
 // smaller shadows, no shadows, lower sharpness. The result is kept for this computer, so later jobs (every scan)
