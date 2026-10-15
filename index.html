@@ -1686,7 +1686,10 @@ function applyVisibility(){
 const PART_NAMES = {LU:'Left end', RU:'Right end', TO:'Top', BO:'Bottom', DE:'Bottom', UB:'Back', AS:'Adjustable shelf',
   FS:'Fixed shelf', PT:'Partition', SL:'Sleeper', FT:'Front toe', BT:'Back toe', SFT:'Kick face', BBK:'Drawer back',
   BBT:'Drawer bottom', BFR:'Drawer box front', BSD:'Drawer side', DBAND:'Edge band', PANEL:'Panel', FILLER:'Filler', ROBT:'Roll-out bottom', ROBK:'Roll-out back', ROF:'Roll-out front'};
+const isTop = x => x.p.k === 'top';        // benchtops / splashbacks (CV countertops: stone by others, on no cut list)
+function topLabel(x){ const s = x.box.getSize(new THREE.Vector3()), thin = Math.min(s.x, s.z) < 60; return s.y > 100 ? (thin ? 'Splashback' : 'Benchtop') : thin ? 'Benchtop edge' : 'Benchtop'; }
 function partLabel(x){
+  if (isTop(x)) return topLabel(x);
   if (x.p.id) return x.p.name;
   if (x.mover) return x.mover.front === x ? (x.mover.m.t === 'door' ? (x.mover.m.inner ? 'Inner door' : 'Door') : x.p.code === 'ROF' ? 'Roll-out' : 'Drawer front') : (PART_NAMES[x.p.code] || x.p.code);
   return PART_NAMES[x.p.code] || x.p.code;
@@ -1734,7 +1737,7 @@ function buildSheet(){
   } else {
     $('sheetTitle').textContent = 'Parts' + (isoGs.size > 1 ? ' · ' + isoGs.size + ' cabinets' : cabNoOf(iso) ? ' · Cab ' + cabNoOf(iso) : '');
     const tagCab = x => isoGs.size > 1 && cabNoOf(x.p.g) ? '#' + cabNoOf(x.p.g) + ' ' : '';
-    const list = parts.filter(x => isoGs.has(x.p.g)).sort((a, b) => (parseInt(cabNoOf(a.p.g)) || 0) - (parseInt(cabNoOf(b.p.g)) || 0) || partLabel(a).localeCompare(partLabel(b)));
+    const list = parts.concat(hardware.filter(isTop)).filter(x => isoGs.has(x.p.g)).sort((a, b) => (parseInt(cabNoOf(a.p.g)) || 0) - (parseInt(cabNoOf(b.p.g)) || 0) || partLabel(a).localeCompare(partLabel(b)));
     const all = document.createElement('div'); all.className = 'sheetbtns';
     all.innerHTML = '<button type="button" id="showAll">Show all</button><button type="button" id="hideAll">Hide all</button>';
     body.appendChild(all);
@@ -1742,7 +1745,7 @@ function buildSheet(){
     all.querySelector('#hideAll').onclick = () => { list.forEach(x => hiddenParts.add(x)); buildSheet(); applyVisibility(); };
     for (const x of list)
       body.appendChild(row(tagCab(x) + partLabel(x), (x.p.id ? '<b>ID ' + esc(x.p.id) + '</b> · ' : '') + sizeOf(x), !hiddenParts.has(x), on => on ? hiddenParts.delete(x) : hiddenParts.add(x)));
-    const hw = hardware.filter(h => isoGs.has(h.p.g));
+    const hw = hardware.filter(h => isoGs.has(h.p.g) && !isTop(h));
     if (hw.length) body.appendChild(row('Hardware', hw.length + ' items', !hw.every(h => hiddenParts.has(h)), on => hw.forEach(h => on ? hiddenParts.delete(h) : hiddenParts.add(h))));
   }
 }
@@ -1751,7 +1754,7 @@ $('sheet').querySelectorAll('.sheettabs button').forEach(b => b.onclick = () => 
 // finish's brightness or tint (the picture CV exported can be paler or darker than the real thing)
 function finishList(){
   const out = new Map();
-  const where = x => parts.includes(x) ? (x.p.id ? 'Cabinets' : 'Cabinets') : WALLK(x.p.k) ? (x.p.k === 'ceiling' ? 'Ceiling' : 'Walls') : x.p.k === 'room' ? 'Floor & room' : x.p.k === 'panel' ? 'Panels' : 'Hardware & appliances';
+  const where = x => parts.includes(x) ? (x.p.id ? 'Cabinets' : 'Cabinets') : WALLK(x.p.k) ? (x.p.k === 'ceiling' ? 'Ceiling' : 'Walls') : x.p.k === 'room' ? 'Floor & room' : x.p.k === 'panel' ? 'Panels' : isTop(x) ? 'Benchtops' : 'Hardware & appliances';
   for (const x of allObjs()) for (const m of x.meshes){
     const k = fk(m); if (!out.has(k)) out.set(k, {k, mi: m.userData.mi, n: 0, parts: new Set(), where: {}});
     const e = out.get(k); e.n++; const w = where(x); e.where[w] = (e.where[w] || 0) + 1;
@@ -2180,6 +2183,10 @@ function buildCutList(){
   for (const x of parts){
     if (!isoGs.has(x.p.g)) continue;
     if (!x.p.id){ noCut.push(x); continue; }
+  }
+  for (const h of hardware) if (isTop(h) && isoGs.has(h.p.g)) noCut.push(h);
+  for (const x of parts){
+    if (!isoGs.has(x.p.g) || !x.p.id) continue;
     const p = x.p, t = Number.isFinite(p.thick) ? Math.round(p.thick) : '';
     const mat = p.material || (x.meshes[0] && matName(x.meshes[0].userData.mi)) || 'Other';
     const size = Math.round(p.L) + ' × ' + Math.round(p.W) + (t ? ' × ' + t : '');
@@ -2366,7 +2373,7 @@ function singleTap(x){
   }
   if (iso !== null){                        // isolated cabinet: tap shows the part's info (doors still open)
     if (x && x.mover) toggleMover(x.mover);
-    if (x && parts.includes(x)) showTip(x); else if (!x) showTip(null);
+    if (x && (parts.includes(x) || isTop(x))) showTip(x); else if (!x) showTip(null);
     return;
   }
   if (!x){ if (selCab !== null) showCab(null); return; }
@@ -2426,14 +2433,14 @@ function showTip(x){
   $('tid').textContent = p.id || '–';
   $('tname').textContent = partLabel(x);
   const no = p.cabNo || cabNoOf(p.g);
-  $('twhere').textContent = (no ? 'Cab ' + no : 'Cabinet') + (p.cabName ? ' · ' + p.cabName : '') + (p.id ? '' : ' · not on the cut list');
+  $('twhere').textContent = (no ? 'Cab ' + no : 'Cabinet') + (p.cabName ? ' · ' + p.cabName : '') + (isTop(x) ? ' · stone, not on the cut list' : p.id ? '' : ' · not on the cut list');
   const t = Number.isFinite(p.thick) ? Math.round(p.thick) : '';
-  const size = p.id ? Math.round(p.L) + ' × ' + Math.round(p.W) + (t ? ' × ' + t : '') : sizeOf(x);
+  const size = p.id ? Math.round(p.L) + ' × ' + Math.round(p.W) + (t ? ' × ' + t : '') : isTop(x) ? x.box.getSize(new THREE.Vector3()).toArray().map(Math.round).sort((a, b) => b - a).join(' × ') : sizeOf(x);
   const bits = ['<span><b>' + size + '</b> mm</span>'];
   if (p.id) bits.push('<span>L ' + Math.round(p.L) + ' · W ' + Math.round(p.W) + ' (grain)</span>');
   const mat = p.material || (x.meshes[0] && matName(x.meshes[0].userData.mi)) || '';
   if (mat) bits.push('<span>' + esc(mat) + '</span>');
-  if (p.code) bits.push('<span>' + esc(p.code) + '</span>');
+  if (p.code || p.c) bits.push('<span>' + esc(p.code || p.c) + '</span>');
   if (p.edges) bits.push('<span>' + esc(edgeText(p.edges)) + '</span>');
   $('tspecs').innerHTML = bits.join('');
   $('tnote').hidden = !p.comment; $('tnote').textContent = p.comment || '';
