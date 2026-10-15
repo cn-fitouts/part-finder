@@ -282,6 +282,31 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
 .npanel button.go{background:var(--mid)!important;border-color:var(--mid)!important;color:#fff!important}
 .nhint{margin:0 0 8px;padding:8px;border-radius:8px;background:var(--pale);color:var(--cyan);font-weight:600;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .nwhere{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+/* the fix list: reports for Claude, and Claude's answers */
+.npanel button.fx{border-color:#e0a030!important;color:#ffc35a!important}
+.fxform{border:1px solid #6b5420;border-radius:8px;padding:10px;margin-bottom:10px;background:rgba(224,160,48,.06)}
+.fxh{display:block;color:#ffc35a;font-size:15px;margin-bottom:2px}
+.fxkinds{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px}
+.fxkinds label{cursor:pointer}
+.fxkinds input{position:absolute;opacity:0;pointer-events:none}
+.fxkinds span{display:inline-block;font:500 13px var(--display);padding:6px 10px;border-radius:16px;border:1px solid var(--line);color:var(--fg)}
+.fxkinds input:checked + span{background:#e0a030;border-color:#e0a030;color:#1a1204}
+.fxkinds input:focus-visible + span{outline:2px solid var(--cyan);outline-offset:2px}
+.fxshot{display:block;width:100%;max-height:160px;object-fit:contain;background:#000;border-radius:6px;margin:8px 0 4px}
+.fxpic{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted)}
+.fxsec{margin-top:12px;border-top:1px solid var(--line);padding-top:8px}
+.fxsec > b{display:block;color:#ffc35a;font-size:15px;margin-bottom:6px}
+.fxsec small{color:var(--muted);font-weight:500;font-size:12px}
+.fxitem{border-left-color:#e0a030}
+.fxitem.fixed{border-left-color:#3fbf7f}
+.fxitem.question{border-left-color:var(--cyan)}
+.fxitem.wontfix{border-left-color:var(--line);opacity:.7}
+.fxst{font:700 11px var(--display);letter-spacing:.05em;text-transform:uppercase;padding:3px 7px;border-radius:4px;background:#e0a030;color:#1a1204;white-space:nowrap}
+.fxitem.fixed .fxst{background:#3fbf7f}
+.fxitem.question .fxst{background:var(--cyan);color:#00141b}
+.fxitem.wontfix .fxst{background:var(--line);color:var(--fg)}
+.fxreply{margin:6px 0 2px;padding:6px 8px;border-radius:6px;background:var(--card);font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere}
+.fxreply b{color:var(--cyan)}
 .npanel .nform textarea{width:100%;font:500 15px var(--display);padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);resize:vertical}
 .npanel .nrow{display:flex;gap:6px;margin:8px 0 12px}
 .npanel .nrow input{flex:1;min-width:0;font:500 14px var(--display);padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg)}
@@ -421,14 +446,29 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
     <div class="srow"><span>Front – back</span><input type="range" id="sZ" min="0" max="1000" value="1000" aria-label="Cut front to back"><button type="button" id="sZf" aria-pressed="false" title="Keep the other side">Flip</button><output id="sZo"></output></div>
   </section>
   <section class="npanel" id="npanel" hidden aria-label="Job notes">
-    <div class="mh"><b>Notes <small id="nCount"></small></b><span><button type="button" class="go" id="nAdd">Add note</button> <button type="button" id="nClose">Close</button></span></div>
+    <div class="mh"><b>Notes <small id="nCount"></small></b><span><button type="button" class="go" id="nAdd">Add note</button> <button type="button" class="fx" id="nFix" title="Something wrong in Part Finder or the 3D model? Send it to the fix list for Claude">Report a fix</button> <button type="button" id="nClose">Close</button></span></div>
     <p class="nhint" id="nHint" hidden>Tap the spot the note is about <button type="button" id="nNoSpot">No spot</button> <button type="button" id="nCancelSpot">Cancel</button></p>
     <form id="nEdit" class="nform" hidden>
       <span class="nwhere" id="nWhere"></span>
       <textarea id="nText" rows="3" placeholder="What does the team need to know?" aria-label="Note"></textarea>
       <div class="nrow"><input id="nBy" placeholder="Your name" aria-label="Your name" autocomplete="name"><button type="button" id="nCancel">Cancel</button><button type="submit" class="pbtn">Save note</button></div>
     </form>
+    <form id="fxEdit" class="nform fxform" hidden>
+      <b class="fxh">Report a fix</b>
+      <span class="nwhere" id="fxWhere"></span>
+      <div class="fxkinds" role="radiogroup" aria-label="What kind of problem">
+        <label><input type="radio" name="fxKind" value="model" checked><span>3D model looks wrong</span></label>
+        <label><input type="radio" name="fxKind" value="info"><span>Part info or lists wrong</span></label>
+        <label><input type="radio" name="fxKind" value="viewer"><span>Part Finder not working right</span></label>
+        <label><input type="radio" name="fxKind" value="other"><span>Other</span></label>
+      </div>
+      <textarea id="fxText" rows="3" placeholder="What's wrong, and what should it be?" aria-label="What needs fixing"></textarea>
+      <img id="fxShot" class="fxshot" alt="Picture of the screen">
+      <label class="fxpic"><input type="checkbox" id="fxPic" checked> Send this picture of the screen with it</label>
+      <div class="nrow"><input id="fxBy" placeholder="Your name" aria-label="Your name" autocomplete="name"><button type="button" id="fxCancel">Cancel</button><button type="submit" class="pbtn">Send</button></div>
+    </form>
     <ul class="nlist" id="nList"></ul>
+    <div class="fxsec" id="fxSec" hidden><b>Fix list <small id="fxCount"></small></b><ul class="nlist" id="fxList"></ul></div>
   </section>
   <section class="tip" id="tip" hidden aria-live="polite">
     <div class="tag">ID<span id="tid">–</span></div>
@@ -1734,7 +1774,15 @@ function jobFront(){
 }
 function reframe(){
   if (typeof elevI !== 'undefined' && elevI >= 0){ elevI = -1; camera.fov = ORBIT_FOV; camera.updateProjectionMatrix(); elevLabel(); }
-  if (solo){ frame(solo.box.clone(), 1.25, cabFront(parts.filter(x => x.p.g === solo.p.g))); return; }
+  if (solo){                                 // a part on its own: look at its broad face (an end panel side-on, not edge-on)
+    const b = solo.box, c = b.getCenter(new THREE.Vector3()), s = b.getSize(new THREE.Vector3()), t = s.x <= s.y && s.x <= s.z ? 'x' : s.y <= s.z ? 'y' : 'z';
+    const n = new THREE.Vector3(); n[t] = 1;
+    if (t === 'y') n.set(0, 0, 1);                          // (a shelf or top: from the front, the tilt shows its top)
+    const cf = cabFront(parts.filter(x => x.p.g === solo.p.g)), toward = cf ? cf.clone().sub(c) : camera.position.clone().sub(c);
+    if (t === 'y' && cf){ const f = cf.clone().sub(c).setY(0); if (f.length() > 1) n.copy(f.normalize()); }
+    else if (n.dot(toward) < 0) n.negate();
+    frame(b.clone(), 1.15, c.clone().addScaledVector(n, 1000)); return;
+  }
   if (iso !== null){
     const cab = parts.filter(x => isoGs.has(x.p.g));
     // frame the cabinet's own body: long shared parts it happens to own (a rangehood's 2.7 m underpanel)
@@ -2384,7 +2432,7 @@ function goNote(n){
 function openNotes(open){
   $('npanel').hidden = !open; $('vNotes').setAttribute('aria-pressed', open);
   if (open){ openSheet(false); if (measuring) setMeasuring(false); openSection(false); $('card').hidden = true; $('tip').hidden = true; listNotes(); }
-  else { setCommenting(false); closeNoteEditor(); updateCard(); }
+  else { setCommenting(false); closeNoteEditor(); closeFixEditor(); updateCard(); }
   sideLists();
 }
 function setCommenting(on){
@@ -2411,7 +2459,7 @@ function openNoteEditor(){
 function closeNoteEditor(){ pendingSpot = null; $('nEdit').hidden = true; $('nAdd').hidden = false; drawPins(); }
 $('vNotes').onclick = () => openNotes($('npanel').hidden);
 $('nClose').onclick = () => openNotes(false);
-$('nAdd').onclick = () => { closeNoteEditor(); setCommenting(true); };
+$('nAdd').onclick = () => { closeNoteEditor(); closeFixEditor(); setCommenting(true); };
 $('nNoSpot').onclick = () => { pendingSpot = null; openNoteEditor(); };
 $('nCancelSpot').onclick = () => setCommenting(false);
 $('nCancel').onclick = () => closeNoteEditor();
@@ -2426,6 +2474,101 @@ $('nEdit').onsubmit = async ev => {
   if (!r.ok) return alertNote(r.error);
   jobNotes.push(r.note); closeNoteEditor(); listNotes(); scanToast('Note saved');
 };
+// ---- the fix list: "Report a fix" sends what's wrong and exactly where - job, room, cabinet, part, the camera view
+// and a picture of the screen - to the team's Apps Script ("PF fixes" tab). The office PC's sync hands the open
+// ones to Claude; Claude's answer (fixed / a question / won't fix, with a reply) comes back and shows here.
+let jobFixes = [], fixShot = '', fixCtx = null;
+const FIX_ST = {open: 'Open', fixed: 'Fixed', question: 'Question', wontfix: "Won't fix"};
+const FIX_KIND = {model: '3D model', info: 'Part info', viewer: 'Part Finder', other: 'Other'};
+function screenShot(maxW){
+  try {
+    forceFrame = true; render(performance.now());       // (drawn and read straight away: the picture is still there)
+    const src = renderer.domElement, k = Math.min(1, (maxW || 1280) / src.width);
+    const c = document.createElement('canvas'); c.width = Math.round(src.width * k); c.height = Math.round(src.height * k);
+    c.getContext('2d').drawImage(src, 0, 0, c.width, c.height);
+    return c.toDataURL('image/jpeg', 0.78);
+  } catch (_) { return ''; }
+}
+function fixWhere(){
+  const x = solo || tipSel || sel, g = x ? x.p.g : iso !== null ? iso : selCab;
+  const cab = g !== null && g !== undefined && g >= 0 ? String(cabNoOf(g) || '') : '';
+  return {x, g, cab, part: x && x.p.id ? String(x.p.id) : ''};
+}
+function openFixEditor(){
+  closeNoteEditor(); setCommenting(false);
+  const w = fixWhere(), cam = camera.position, tg = controls.target;
+  fixShot = screenShot(1280);
+  const mode = solo ? 'part on its own' : iso !== null ? 'isolated cabinet' : 'room';
+  fixCtx = {w, view: [r1(cam.x), r1(cam.y), r1(cam.z), r1(tg.x), r1(tg.y), r1(tg.z)],
+    link: location.origin + location.pathname + '?j=' + encodeURIComponent(ENTRY) + (w.cab ? '&cab=' + encodeURIComponent(w.cab) : ''),
+    ctx: {mode, cabs: [...isoGs].map(cabNoOf), cabName: w.g !== null && w.g !== undefined ? (CABS[w.g] || {}).n || '' : '',
+      partName: w.x ? partLabel(w.x) : '', partCode: w.x ? w.x.p.code || '' : '', material: w.x ? w.x.p.material || '' : '',
+      size: w.x ? sizeOf(w.x) : '', seeThrough: iso !== null ? !isoSolid : !solid, exploded: !!exTarget, wall: elevI >= 0 ? elevI : null,
+      hidden: hiddenParts.size, fov: camera.fov, lite: !!LITE, gpu: typeof GPU === 'string' ? GPU.slice(0, 120) : '',
+      screen: innerWidth + 'x' + innerHeight, page: location.href.slice(0, 300), ua: navigator.userAgent.slice(0, 160),
+      job: JOB.job, built: JOB.built || ''}};
+  $('fxShot').src = fixShot || ''; $('fxShot').hidden = !fixShot; $('fxPic').checked = !!fixShot; $('fxPic').parentNode.hidden = !fixShot;
+  $('fxWhere').textContent = [ROOM_NAME, w.cab ? 'Cab ' + w.cab : '', w.x ? (w.part ? 'part ' + w.part + ' · ' : '') + partLabel(w.x) : ''].filter(Boolean).join(' · ') || 'This job';
+  $('fxBy').value = noteName; $('fxText').value = '';
+  $('fxEdit').hidden = false; $('nAdd').hidden = true; $('nFix').hidden = true;
+  $('npanel').scrollTop = 0; $('fxText').focus();
+}
+function closeFixEditor(){ $('fxEdit').hidden = true; $('nAdd').hidden = false; $('nFix').hidden = false; fixShot = ''; }
+$('nFix').onclick = () => openFixEditor();
+$('fxCancel').onclick = () => closeFixEditor();
+$('fxEdit').onsubmit = async ev => {
+  ev.preventDefault();
+  const text = $('fxText').value.trim(); if (!text) return $('fxText').focus();
+  noteName = $('fxBy').value.trim(); try { localStorage.setItem('pf-name', noteName); } catch (_) {}
+  const kind = ($('fxEdit').querySelector('input[name=fxKind]:checked') || {}).value || 'other';
+  const btn = $('fxEdit').querySelector('.pbtn'), f = fixCtx; btn.disabled = true; btn.textContent = 'Sending…';
+  const r = await api({pf: 'fix.add', folder: FOLDER, job: ENTRY, room: ROOM_NAME, cab: f.w.cab, part: f.w.part, kind, text, by: noteName,
+    link: f.link, view: f.view, spot: [], context: f.ctx, shot: $('fxPic').checked && fixShot ? fixShot.split(',')[1] : ''}, 60000);
+  btn.disabled = false; btn.textContent = 'Send';
+  if (!r.ok) return scanToast('Not sent: ' + (r.error || 'try again'));
+  jobFixes.push(r.fix); closeFixEditor(); listFixes(); scanToast('Sent to the fix list');
+};
+async function loadFixes(){
+  const r = await api({pf: 'fixes', folder: FOLDER}, 12000);
+  jobFixes = r.ok && Array.isArray(r.fixes) ? r.fixes : [];
+  listFixes();
+  const want = Q.get('fix'), f = want && jobFixes.find(x => x.id === want);
+  if (f){ openNotes(true); goFix(f); }
+}
+function listFixes(){
+  const ul = $('fxList'); ul.innerHTML = '';
+  $('fxSec').hidden = !jobFixes.length;
+  const order = {open: 0, question: 1, fixed: 2, wontfix: 3};
+  const list = jobFixes.slice().sort((a, b) => (order[a.status] || 0) - (order[b.status] || 0) || b.at.localeCompare(a.at));
+  const open = jobFixes.filter(f => f.status === 'open').length;
+  $('fxCount').textContent = open ? open + ' waiting' : '';
+  for (const f of list){
+    const when = new Date(f.at), d = isNaN(when) ? '' : when.toLocaleDateString('en-AU', {day: 'numeric', month: 'short'});
+    const li = document.createElement('li'); li.className = 'nitem fxitem ' + (FIX_ST[f.status] ? f.status : 'open');
+    li.innerHTML = '<span class="fxst"></span><div class="nbody"><p></p><span class="nmeta"></span></div><button type="button" class="ngo">Show</button>';
+    li.querySelector('.fxst').textContent = FIX_ST[f.status] || 'Open';
+    li.querySelector('p').textContent = f.text;
+    li.querySelector('.nmeta').textContent = [FIX_KIND[f.kind] || '', f.room, f.cab ? 'cab ' + f.cab : '', f.part ? 'part ' + f.part : '', f.by, d].filter(Boolean).join(' · ');
+    if (f.reply){ const r = document.createElement('div'); r.className = 'fxreply'; r.innerHTML = '<b>Claude:</b> '; r.appendChild(document.createTextNode(f.reply)); li.querySelector('.nbody').appendChild(r); }
+    li.querySelector('.ngo').onclick = () => goFix(f);
+    ul.appendChild(li);
+  }
+}
+// back to what the screen showed when the fix was reported: the room, the cabinet or the part on its own, same view
+function goFix(f){
+  if (f.job && f.job !== ENTRY){ location.assign('?j=' + encodeURIComponent(f.job) + '&fix=' + encodeURIComponent(f.id)); return; }
+  const mode = (f.context && f.context.mode) || '', g = f.cab ? cabOrder().find(gg => String(cabNoOf(gg)) === String(f.cab)) : undefined;
+  const view = () => { if (f.view && f.view.length === 6){
+    if (camera.fov === EYE_FOV){ camera.fov = BASE_FOV; }
+    camera.position.fromArray(f.view, 0); controls.target.fromArray(f.view, 3);
+    const d = camera.position.distanceTo(controls.target);
+    camera.near = Math.max(20, d / 200); camera.far = d * 20 + 20000; camera.updateProjectionMatrix(); controls.update(); forceFrame = true; } };
+  if (g !== undefined && mode !== 'room'){
+    if (iso !== g) isolate(g);
+    const x = f.part && byId.get(f.part);
+    requestAnimationFrame(() => requestAnimationFrame(() => { if (mode === 'part on its own' && x) soloPart(x); else if (x) showTip(x); view(); }));
+  } else { if (iso !== null) isolate(null); requestAnimationFrame(() => requestAnimationFrame(view)); }
+}
 // ---- job PDFs: shop drawings, assembly sheets, hardware sheets. The sync publishes the ones saved next to the
 // job's DAE; any extra can be uploaded here (settings PIN) and are kept in the team's Google Drive.
 const DOC_T = {shop: 'Shop drawings', assembly: 'Assembly sheets', hardware: 'Hardware sheets'};
@@ -2699,7 +2842,7 @@ new ResizeObserver(() => { if (docPdf && !$('docView').hidden){ clearTimeout(doc
   if (e){ const f = buildFolders(jobs).get(FOLDER) || buildFolders(jobs, null, true).get(FOLDER); folderEntries = f ? f.entries : []; }
   const wantCab = Q.get('cab');                    // (from an assembly sheet page: open that cabinet)
   if (wantCab){ const g = cabOrder().find(gg => String(cabNoOf(gg)) === wantCab); if (g !== undefined) isolate(g); }
-  await loadNotes();
+  await loadNotes(); loadFixes();
   const want = Q.get('note');
   if (want){ const n = jobNotes.find(x => x.id === want); if (n){ openNotes(true); goNote(n); } }
 })();
@@ -3218,7 +3361,7 @@ function render(t){
 new ResizeObserver(() => { aoSize(); markDirty(); }).observe(stage); aoSize();
 
 resize(); hintText(); fromHash(); sideLists();
-if (!sel && !Q.get('cab') && !Q.get('note')) eyeView();     // (opens standing in the room, not looking in from outside)
+if (!sel && !Q.get('cab') && !Q.get('note') && !Q.get('fix')) eyeView();     // (opens standing in the room, not looking in from outside)
 // ---- speed on this computer: the first time Part Finder opens a job here it times real frames (the worst case:
 // shadows redrawn too) and steps quality down until a frame takes under ~25 ms - soft shading off, normal sharpness,
 // smaller shadows, no shadows, lower sharpness. The result is kept for this computer, so later jobs (every scan)
