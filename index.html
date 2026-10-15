@@ -2486,7 +2486,7 @@ function screenShot(maxW){
     const src = renderer.domElement, k = Math.min(1, (maxW || 1280) / src.width);
     const c = document.createElement('canvas'); c.width = Math.round(src.width * k); c.height = Math.round(src.height * k);
     c.getContext('2d').drawImage(src, 0, 0, c.width, c.height);
-    return c.toDataURL('image/jpeg', 0.78);
+    return c.toDataURL('image/jpeg', 0.72);
   } catch (_) { return ''; }
 }
 function fixWhere(){
@@ -2497,7 +2497,7 @@ function fixWhere(){
 function openFixEditor(){
   closeNoteEditor(); setCommenting(false);
   const w = fixWhere(), cam = camera.position, tg = controls.target;
-  fixShot = screenShot(1280);
+  fixShot = screenShot(1024);
   const mode = solo ? 'part on its own' : iso !== null ? 'isolated cabinet' : 'room';
   fixCtx = {w, view: [r1(cam.x), r1(cam.y), r1(cam.z), r1(tg.x), r1(tg.y), r1(tg.z)],
     link: location.origin + location.pathname + '?j=' + encodeURIComponent(ENTRY) + (w.cab ? '&cab=' + encodeURIComponent(w.cab) : ''),
@@ -2523,9 +2523,15 @@ $('fxEdit').onsubmit = async ev => {
   const kind = ($('fxEdit').querySelector('input[name=fxKind]:checked') || {}).value || 'other';
   const btn = $('fxEdit').querySelector('.pbtn'), f = fixCtx; btn.disabled = true; btn.textContent = 'Sending…';
   const r = await api({pf: 'fix.add', folder: FOLDER, job: ENTRY, room: ROOM_NAME, cab: f.w.cab, part: f.w.part, kind, text, by: noteName,
-    link: f.link, view: f.view, spot: [], context: f.ctx, shot: $('fxPic').checked && fixShot ? fixShot.split(',')[1] : ''}, 60000);
+    link: f.link, view: f.view, spot: [], context: f.ctx, shot: $('fxPic').checked && fixShot ? fixShot.split(',')[1] : ''}, 120000);
   btn.disabled = false; btn.textContent = 'Send';
-  if (!r.ok) return scanToast('Not sent: ' + (r.error || 'try again'));
+  if (!r.ok){
+    // (a slow connection can give up waiting after the report was saved: look before saying it failed)
+    const chk = await api({pf: 'fixes', folder: FOLDER}, 20000);
+    const got = chk.ok && (chk.fixes || []).find(x => x.text === text && x.job === ENTRY && !jobFixes.some(j => j.id === x.id));
+    if (!got) return scanToast('Not sent: ' + (r.error || 'try again'));
+    r.fix = got;
+  }
   jobFixes.push(r.fix); closeFixEditor(); listFixes(); scanToast('Sent to the fix list');
 };
 async function loadFixes(){
