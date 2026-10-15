@@ -1,6 +1,57 @@
 {
  "jobs": [
   {
+   "key": "j1093-62-florizel-street-kitchen-pantry",
+   "name": "J1093 - 62 Florizel Street - Kitchen & Pantry",
+   "number": "J1093",
+   "room": "Kitchen & Pantry",
+   "cabs": 61,
+   "parts": 475,
+   "updated": "2026-10-15 12:01",
+   "docs": [
+    {
+     "t": "shop",
+     "name": "Final - J1063 - 62 Florizel St Glen Iris - Bed 1 & 4 Robe",
+     "f": "docs/j1093-62-florizel-street-kitchen-pantry/final-j1063-62-florizel-st-glen-iris-bed-1-4-robe.pdf"
+    },
+    {
+     "t": "shop",
+     "name": "Final - J1063 - 62 Florizel St Glen Iris - Hallway - Linen",
+     "f": "docs/j1093-62-florizel-street-kitchen-pantry/final-j1063-62-florizel-st-glen-iris-hallway-linen.pdf"
+    },
+    {
+     "t": "shop",
+     "name": "Final - J1063 - 62 Florizel St Glen Iris - Kitchen Pantry & Laundry",
+     "f": "docs/j1093-62-florizel-street-kitchen-pantry/final-j1063-62-florizel-st-glen-iris-kitchen-pantry-laundry.pdf"
+    },
+    {
+     "t": "shop",
+     "name": "Final - J1063 - 62 Florizel St Glen Iris - Vanities",
+     "f": "docs/j1093-62-florizel-street-kitchen-pantry/final-j1063-62-florizel-st-glen-iris-vanities.pdf"
+    },
+    {
+     "t": "assembly",
+     "name": "J1063 - 62 Florizel St Glen Iris - Assembly Sheets - Hallway & Linen",
+     "f": "docs/j1093-62-florizel-street-kitchen-pantry/j1063-62-florizel-st-glen-iris-assembly-sheets-hallway-linen.pdf"
+    },
+    {
+     "t": "assembly",
+     "name": "J1063 - 62 Florizel St Glen Iris - Assembly Sheets - Kitchen Pantry",
+     "f": "docs/j1093-62-florizel-street-kitchen-pantry/j1063-62-florizel-st-glen-iris-assembly-sheets-kitchen-pantry.pdf"
+    },
+    {
+     "t": "assembly",
+     "name": "J1063 - 62 Florizel St Glen Iris - Assembly Sheets - Robes",
+     "f": "docs/j1093-62-florizel-street-kitchen-pantry/j1063-62-florizel-st-glen-iris-assembly-sheets-robes.pdf"
+    },
+    {
+     "t": "assembly",
+     "name": "J1063 - 62 Florizel St Glen Iris - Assembly Sheets - Vanities",
+     "f": "docs/j1093-62-florizel-street-kitchen-pantry/j1063-62-florizel-st-glen-iris-assembly-sheets-vanities.pdf"
+    }
+   ]
+  },
+  {
    "key": "j1093-62-florizel-street-hallway-laundry-and-linen",
    "name": "J1093 - 62 Florizel Street - Hallway Laundry and Linen",
    "number": "J1093",
@@ -65,57 +116,6 @@
      "t": "shop",
      "name": "Final - Cathy & John Bain - 10 Morris Rd - Upper Beaconsfield",
      "f": "docs/j974-cathy-john-bain/final-cathy-john-bain-10-morris-rd-upper-beaconsfield.pdf"
-    }
-   ]
-  },
-  {
-   "key": "j1093-62-florizel-street-kitchen-pantry",
-   "name": "J1093 - 62 Florizel Street - Kitchen & Pantry",
-   "number": "J1093",
-   "room": "Kitchen & Pantry",
-   "cabs": 61,
-   "parts": 475,
-   "updated": "2026-10-14 15:02",
-   "docs": [
-    {
-     "t": "shop",
-     "name": "Final - J1063 - 62 Florizel St Glen Iris - Bed 1 & 4 Robe",
-     "f": "docs/j1093-62-florizel-street-kitchen-pantry/final-j1063-62-florizel-st-glen-iris-bed-1-4-robe.pdf"
-    },
-    {
-     "t": "shop",
-     "name": "Final - J1063 - 62 Florizel St Glen Iris - Hallway - Linen",
-     "f": "docs/j1093-62-florizel-street-kitchen-pantry/final-j1063-62-florizel-st-glen-iris-hallway-linen.pdf"
-    },
-    {
-     "t": "shop",
-     "name": "Final - J1063 - 62 Florizel St Glen Iris - Kitchen Pantry & Laundry",
-     "f": "docs/j1093-62-florizel-street-kitchen-pantry/final-j1063-62-florizel-st-glen-iris-kitchen-pantry-laundry.pdf"
-    },
-    {
-     "t": "shop",
-     "name": "Final - J1063 - 62 Florizel St Glen Iris - Vanities",
-     "f": "docs/j1093-62-florizel-street-kitchen-pantry/final-j1063-62-florizel-st-glen-iris-vanities.pdf"
-    },
-    {
-     "t": "assembly",
-     "name": "J1063 - 62 Florizel St Glen Iris - Assembly Sheets - Hallway & Linen",
-     "f": "docs/j1093-62-florizel-street-kitchen-pantry/j1063-62-florizel-st-glen-iris-assembly-sheets-hallway-linen.pdf"
-    },
-    {
-     "t": "assembly",
-     "name": "J1063 - 62 Florizel St Glen Iris - Assembly Sheets - Kitchen Pantry",
-     "f": "docs/j1093-62-florizel-street-kitchen-pantry/j1063-62-florizel-st-glen-iris-assembly-sheets-kitchen-pantry.pdf"
-    },
-    {
-     "t": "assembly",
-     "name": "J1063 - 62 Florizel St Glen Iris - Assembly Sheets - Robes",
-     "f": "docs/j1093-62-florizel-street-kitchen-pantry/j1063-62-florizel-st-glen-iris-assembly-sheets-robes.pdf"
-    },
-    {
-     "t": "assembly",
-     "name": "J1063 - 62 Florizel St Glen Iris - Assembly Sheets - Vanities",
-     "f": "docs/j1093-62-florizel-street-kitchen-pantry/j1063-62-florizel-st-glen-iris-assembly-sheets-vanities.pdf"
     }
    ]
   },
