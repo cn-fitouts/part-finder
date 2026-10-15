@@ -1,6 +1,22 @@
 {
  "jobs": [
   {
+   "key": "j936-barry-st-basement",
+   "name": "J936 - Barry St Basement",
+   "number": "J936",
+   "room": "Wine Cellar",
+   "cabs": 21,
+   "parts": 131,
+   "updated": "2026-10-15 14:58",
+   "docs": [
+    {
+     "t": "assembly",
+     "name": "Barry St - Cellar - Assembly Sheets",
+     "f": "docs/j936-barry-st-basement/barry-st-cellar-assembly-sheets.pdf"
+    }
+   ]
+  },
+  {
    "key": "j1093-62-florizel-street-kitchen-pantry",
    "name": "J1093 - 62 Florizel Street - Kitchen & Pantry",
    "number": "J1093",
