@@ -7,12 +7,28 @@
    "room": "Wine Cellar",
    "cabs": 21,
    "parts": 131,
-   "updated": "2026-10-15 14:58",
+   "updated": "2026-10-16 08:16",
    "docs": [
     {
      "t": "assembly",
      "name": "Barry St - Cellar - Assembly Sheets",
      "f": "docs/j936-barry-st-basement/barry-st-cellar-assembly-sheets.pdf"
+    }
+   ]
+  },
+  {
+   "key": "j974-cathy-john-bain",
+   "name": "J974 - Cathy & John Bain",
+   "number": "J974",
+   "room": "Kitchen",
+   "cabs": 41,
+   "parts": 282,
+   "updated": "2026-10-16 08:16",
+   "docs": [
+    {
+     "t": "shop",
+     "name": "Final - Cathy & John Bain - 10 Morris Rd - Upper Beaconsfield",
+     "f": "docs/j974-cathy-john-bain/final-cathy-john-bain-10-morris-rd-upper-beaconsfield.pdf"
     }
    ]
   },
@@ -23,7 +39,7 @@
    "room": "Kitchen & Pantry",
    "cabs": 61,
    "parts": 475,
-   "updated": "2026-10-15 12:01",
+   "updated": "2026-10-16 08:15",
    "docs": [
     {
      "t": "shop",
@@ -74,7 +90,7 @@
    "room": "Hallway Laundry & Linen",
    "cabs": 16,
    "parts": 111,
-   "updated": "2026-10-15 06:20",
+   "updated": "2026-10-16 08:13",
    "parent": "j1093-62-florizel-street-hallway-laundry-linen",
    "docs": [
     {
@@ -120,29 +136,13 @@
    ]
   },
   {
-   "key": "j974-cathy-john-bain",
-   "name": "J974 - Cathy & John Bain",
-   "number": "J974",
-   "room": "Kitchen",
-   "cabs": 41,
-   "parts": 282,
-   "updated": "2026-10-14 15:02",
-   "docs": [
-    {
-     "t": "shop",
-     "name": "Final - Cathy & John Bain - 10 Morris Rd - Upper Beaconsfield",
-     "f": "docs/j974-cathy-john-bain/final-cathy-john-bain-10-morris-rd-upper-beaconsfield.pdf"
-    }
-   ]
-  },
-  {
    "key": "j1093-62-florizel-street-master-vanity",
    "name": "J1093 - 62 Florizel Street - Master Vanity",
    "number": "J1093",
    "room": "Master Vanity",
    "cabs": 6,
    "parts": 30,
-   "updated": "2026-10-14 15:01",
+   "updated": "2026-10-16 08:13",
    "parent": "j1093-62-florizel-street-hallway-laundry-linen",
    "docs": [
     {
@@ -194,7 +194,7 @@
    "room": "Bed 1 Robe",
    "cabs": 13,
    "parts": 111,
-   "updated": "2026-10-14 15:01",
+   "updated": "2026-10-16 08:13",
    "parent": "j1093-62-florizel-street-hallway-laundry-linen",
    "docs": [
     {
@@ -246,7 +246,7 @@
    "room": "Bed 4 Robe",
    "cabs": 13,
    "parts": 111,
-   "updated": "2026-10-14 15:01",
+   "updated": "2026-10-16 08:13",
    "parent": "j1093-62-florizel-street-hallway-laundry-linen",
    "docs": [
     {
@@ -298,7 +298,7 @@
    "room": "Bathroom Vanity",
    "cabs": 5,
    "parts": 20,
-   "updated": "2026-10-14 15:01",
+   "updated": "2026-10-16 08:13",
    "parent": "j1093-62-florizel-street-hallway-laundry-linen",
    "docs": [
     {
@@ -350,7 +350,7 @@
    "room": "Laundry",
    "cabs": 10,
    "parts": 52,
-   "updated": "2026-10-14 15:00"
+   "updated": "2026-10-16 08:12"
   },
   {
    "key": "179-drysdale-ave-narre-warren",
@@ -359,7 +359,29 @@
    "room": "Robe",
    "cabs": 42,
    "parts": 359,
-   "updated": "2026-10-14 15:00"
+   "updated": "2026-10-16 08:12"
+  },
+  {
+   "key": "j1022-moorehouse-laundry",
+   "name": "J1022 - Moorehouse - Laundry",
+   "number": "J1022",
+   "room": "",
+   "cabs": 19,
+   "parts": 0,
+   "updated": "2026-10-16 08:12",
+   "parent": "j1022-moorehouse",
+   "docs": [
+    {
+     "t": "assembly",
+     "name": "J1022 - Moorehouse - Laundry-Assembly",
+     "f": "docs/j1022-moorehouse/j1022-moorehouse-laundry-assembly.pdf"
+    },
+    {
+     "t": "hardware",
+     "name": "J1022 - Moorehouse - Laundry-Hardware",
+     "f": "docs/j1022-moorehouse/j1022-moorehouse-laundry-hardware.pdf"
+    }
+   ]
   },
   {
    "key": "andy-joni-kitchen",

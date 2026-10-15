@@ -1,0 +1,10 @@
+{
+ "job": "J1022 - Moorehouse",
+ "rooms": [
+  {
+   "room": "Laundry",
+   "key": "j1022-moorehouse-laundry",
+   "ids": "1-81,85-95,100-126,128-139"
+  }
+ ]
+}
