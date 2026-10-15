@@ -7,7 +7,7 @@
    "room": "Wine Cellar",
    "cabs": 21,
    "parts": 131,
-   "updated": "2026-10-16 08:16",
+   "updated": "2026-10-16 09:01",
    "docs": [
     {
      "t": "assembly",
@@ -23,7 +23,7 @@
    "room": "Kitchen",
    "cabs": 41,
    "parts": 282,
-   "updated": "2026-10-16 08:16",
+   "updated": "2026-10-16 09:01",
    "docs": [
     {
      "t": "shop",
@@ -39,7 +39,7 @@
    "room": "Kitchen & Pantry",
    "cabs": 61,
    "parts": 475,
-   "updated": "2026-10-16 08:15",
+   "updated": "2026-10-16 09:00",
    "docs": [
     {
      "t": "shop",
@@ -90,7 +90,7 @@
    "room": "Hallway Laundry & Linen",
    "cabs": 16,
    "parts": 111,
-   "updated": "2026-10-16 08:13",
+   "updated": "2026-10-16 09:00",
    "parent": "j1093-62-florizel-street-hallway-laundry-linen",
    "docs": [
     {
@@ -142,7 +142,7 @@
    "room": "Master Vanity",
    "cabs": 6,
    "parts": 30,
-   "updated": "2026-10-16 08:13",
+   "updated": "2026-10-16 09:00",
    "parent": "j1093-62-florizel-street-hallway-laundry-linen",
    "docs": [
     {
@@ -194,7 +194,7 @@
    "room": "Bed 1 Robe",
    "cabs": 13,
    "parts": 111,
-   "updated": "2026-10-16 08:13",
+   "updated": "2026-10-16 08:59",
    "parent": "j1093-62-florizel-street-hallway-laundry-linen",
    "docs": [
     {
@@ -246,7 +246,7 @@
    "room": "Bed 4 Robe",
    "cabs": 13,
    "parts": 111,
-   "updated": "2026-10-16 08:13",
+   "updated": "2026-10-16 08:59",
    "parent": "j1093-62-florizel-street-hallway-laundry-linen",
    "docs": [
     {
@@ -298,7 +298,7 @@
    "room": "Bathroom Vanity",
    "cabs": 5,
    "parts": 20,
-   "updated": "2026-10-16 08:13",
+   "updated": "2026-10-16 08:59",
    "parent": "j1093-62-florizel-street-hallway-laundry-linen",
    "docs": [
     {
@@ -350,7 +350,7 @@
    "room": "Laundry",
    "cabs": 10,
    "parts": 52,
-   "updated": "2026-10-16 08:12"
+   "updated": "2026-10-16 08:59"
   },
   {
    "key": "179-drysdale-ave-narre-warren",
@@ -359,16 +359,16 @@
    "room": "Robe",
    "cabs": 42,
    "parts": 359,
-   "updated": "2026-10-16 08:12"
+   "updated": "2026-10-16 08:59"
   },
   {
    "key": "j1022-moorehouse-laundry",
    "name": "J1022 - Moorehouse - Laundry",
    "number": "J1022",
-   "room": "",
+   "room": "Laundry",
    "cabs": 19,
-   "parts": 0,
-   "updated": "2026-10-16 08:12",
+   "parts": 92,
+   "updated": "2026-10-16 08:59",
    "parent": "j1022-moorehouse",
    "docs": [
     {
@@ -380,6 +380,112 @@
      "t": "hardware",
      "name": "J1022 - Moorehouse - Laundry-Hardware",
      "f": "docs/j1022-moorehouse/j1022-moorehouse-laundry-hardware.pdf"
+    },
+    {
+     "t": "assembly",
+     "name": "J1022 - Moorehouse - Vanities-Production-Assembly",
+     "f": "docs/j1022-moorehouse/j1022-moorehouse-vanities-production-assembly.pdf"
+    },
+    {
+     "t": "hardware",
+     "name": "J1022 - Moorehouse - Vanities-Production-Hardware",
+     "f": "docs/j1022-moorehouse/j1022-moorehouse-vanities-production-hardware.pdf"
+    }
+   ]
+  },
+  {
+   "key": "j1022-moorehouse-bathroom",
+   "name": "J1022 - Moorehouse - Bathroom",
+   "number": "J1022",
+   "room": "Bathroom",
+   "cabs": 10,
+   "parts": 43,
+   "updated": "2026-10-16 08:59",
+   "parent": "j1022-moorehouse",
+   "docs": [
+    {
+     "t": "assembly",
+     "name": "J1022 - Moorehouse - Laundry-Assembly",
+     "f": "docs/j1022-moorehouse/j1022-moorehouse-laundry-assembly.pdf"
+    },
+    {
+     "t": "hardware",
+     "name": "J1022 - Moorehouse - Laundry-Hardware",
+     "f": "docs/j1022-moorehouse/j1022-moorehouse-laundry-hardware.pdf"
+    },
+    {
+     "t": "assembly",
+     "name": "J1022 - Moorehouse - Vanities-Production-Assembly",
+     "f": "docs/j1022-moorehouse/j1022-moorehouse-vanities-production-assembly.pdf"
+    },
+    {
+     "t": "hardware",
+     "name": "J1022 - Moorehouse - Vanities-Production-Hardware",
+     "f": "docs/j1022-moorehouse/j1022-moorehouse-vanities-production-hardware.pdf"
+    }
+   ]
+  },
+  {
+   "key": "j1022-moorehouse-ensuite",
+   "name": "J1022 - Moorehouse - Ensuite",
+   "number": "J1022",
+   "room": "Ensuite",
+   "cabs": 7,
+   "parts": 38,
+   "updated": "2026-10-16 08:59",
+   "parent": "j1022-moorehouse",
+   "docs": [
+    {
+     "t": "assembly",
+     "name": "J1022 - Moorehouse - Laundry-Assembly",
+     "f": "docs/j1022-moorehouse/j1022-moorehouse-laundry-assembly.pdf"
+    },
+    {
+     "t": "hardware",
+     "name": "J1022 - Moorehouse - Laundry-Hardware",
+     "f": "docs/j1022-moorehouse/j1022-moorehouse-laundry-hardware.pdf"
+    },
+    {
+     "t": "assembly",
+     "name": "J1022 - Moorehouse - Vanities-Production-Assembly",
+     "f": "docs/j1022-moorehouse/j1022-moorehouse-vanities-production-assembly.pdf"
+    },
+    {
+     "t": "hardware",
+     "name": "J1022 - Moorehouse - Vanities-Production-Hardware",
+     "f": "docs/j1022-moorehouse/j1022-moorehouse-vanities-production-hardware.pdf"
+    }
+   ]
+  },
+  {
+   "key": "j1022-moorehouse-powder",
+   "name": "J1022 - Moorehouse - Powder",
+   "number": "J1022",
+   "room": "Powder",
+   "cabs": 5,
+   "parts": 17,
+   "updated": "2026-10-16 08:59",
+   "parent": "j1022-moorehouse",
+   "docs": [
+    {
+     "t": "assembly",
+     "name": "J1022 - Moorehouse - Laundry-Assembly",
+     "f": "docs/j1022-moorehouse/j1022-moorehouse-laundry-assembly.pdf"
+    },
+    {
+     "t": "hardware",
+     "name": "J1022 - Moorehouse - Laundry-Hardware",
+     "f": "docs/j1022-moorehouse/j1022-moorehouse-laundry-hardware.pdf"
+    },
+    {
+     "t": "assembly",
+     "name": "J1022 - Moorehouse - Vanities-Production-Assembly",
+     "f": "docs/j1022-moorehouse/j1022-moorehouse-vanities-production-assembly.pdf"
+    },
+    {
+     "t": "hardware",
+     "name": "J1022 - Moorehouse - Vanities-Production-Hardware",
+     "f": "docs/j1022-moorehouse/j1022-moorehouse-vanities-production-hardware.pdf"
     }
    ]
   },
