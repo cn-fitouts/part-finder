@@ -7,6 +7,16 @@
    "ids": "58-82,86-92,95-100,103-111,114-119,122-130"
   },
   {
+   "room": "Bed 2 Robe",
+   "key": "j1022-moorehouse-bed-2-robe",
+   "ids": "146-169,171-209,211,213-214"
+  },
+  {
+   "room": "Bed 3 Robe",
+   "key": "j1022-moorehouse-bed-3-robe",
+   "ids": "215-239,241-279,281,283"
+  },
+  {
    "room": "Ensuite",
    "key": "j1022-moorehouse-ensuite",
    "ids": "1-21,25-31,34-39,42-46,49-54,57"
@@ -17,9 +27,19 @@
    "ids": "1-81,85-95,100-126,128-139"
   },
   {
+   "room": "Master WIR",
+   "key": "j1022-moorehouse-master-wir",
+   "ids": "1-26,28,30-46,48-66,68,70-145"
+  },
+  {
    "room": "Powder",
    "key": "j1022-moorehouse-powder",
    "ids": "133-145,151-169"
+  },
+  {
+   "room": "Study",
+   "key": "j1022-moorehouse-study",
+   "ids": "1-73"
   }
  ]
 }
