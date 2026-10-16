@@ -1,13 +1,14 @@
 {
  "jobs": [
   {
-   "key": "j936-barry-st-basement",
-   "name": "J936 - Barry St Basement",
+   "key": "j936-barry-st-basement-wine-cellar",
+   "name": "J936 - Barry St Basement - Wine Cellar",
    "number": "J936",
    "room": "Wine Cellar",
    "cabs": 21,
    "parts": 131,
-   "updated": "2026-10-16 12:51",
+   "updated": "2026-10-16 14:12",
+   "parent": "j936-barry-st-basement",
    "docs": [
     {
      "t": "assembly",
