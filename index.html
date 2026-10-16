@@ -2258,7 +2258,7 @@ function buildCutList(){
   const doors = movers.filter(mv => mv.m.t === 'door' && !mv.m.fixed && parts[mv.m.f] && isoGs.has(parts[mv.m.f].p.g));
   if (doors.length) add('Door (opening)', doors.length);
   // hinges per door, by the door's opening angle in CV (110° / 155° / 170°...)
-  for (const mv of doors){ const n = (mv.m.arms || []).length; if (n) add('Hinge' + (mv.m.a ? ' ' + mv.m.a + '°' : ''), n); }
+  for (const mv of doors){ const n = (mv.m.arms || []).length; if (n) { const ha = mv.m.ha || mv.m.a; add('Hinge' + (ha ? ' ' + ha + '°' : ''), n); }; }
   for (const h of hardware) if (isoGs.has(h.p.g) && h.p.k === 'hw'){
     const it = hwItem(h.p.c, h.p.n); if (!it || it === 'Hinge') continue;
     add(it === 'Handle' ? handleName(h) : it, 1);
