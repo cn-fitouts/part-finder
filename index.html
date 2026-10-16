@@ -2078,7 +2078,7 @@ $('vExplode').onclick = () => { exTarget = exTarget ? 0 : 1; $('vExplode').setAt
 $('vSee').onclick = () => { isoSolid = !isoSolid; $('vSee').setAttribute('aria-pressed', !isoSolid); paint(); };
 // step through cabinets in cabinet-number order (cabinets with no number follow, in model order)
 function cabOrder(){
-  const gs = [...new Set(parts.map(x => x.p.g).concat(hardware.filter(h => h.p.k === 'hw' || h.p.k === 'panel').map(h => h.p.g)))].filter(g => g >= 0);   // (a kicker or panel with no cut-list part still counts)
+  const gs = [...new Set(parts.map(x => x.p.g).concat(hardware.filter(h => h.p.k === 'hw' || h.p.k === 'panel' || h.p.k === 'top').map(h => h.p.g)))].filter(g => g >= 0);   // (a kicker or panel with no cut-list part still counts)
   const num = g => { const n = parseInt(cabNoOf(g), 10); return isNaN(n) ? 1e9 + g : n; };
   return gs.sort((a, b) => num(a) - num(b));
 }
