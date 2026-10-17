@@ -1,6 +1,15 @@
 {
  "jobs": [
   {
+   "key": "j1081-61-howitt-laundry",
+   "name": "J1081 - 61 Howitt Laundry",
+   "number": "J1081",
+   "room": "Laundry",
+   "cabs": 10,
+   "parts": 4,
+   "updated": "2026-10-17 12:00"
+  },
+  {
    "key": "j936-barry-st-basement-wine-cellar",
    "name": "J936 - Barry St Basement - Wine Cellar",
    "number": "J936",
@@ -79,15 +88,6 @@
      "f": "docs/j936-barry-st-basement/final-barry-st-garage-cabinets.pdf"
     }
    ]
-  },
-  {
-   "key": "j1081-61-howitt-laundry",
-   "name": "J1081 - 61 Howitt Laundry",
-   "number": "J1081",
-   "room": "Laundry",
-   "cabs": 10,
-   "parts": 52,
-   "updated": "2026-10-16 22:28"
   },
   {
    "key": "j1022-moorehouse-laundry",
