@@ -10,6 +10,11 @@
    "room": "Garage Cabinets",
    "key": "j936-barry-st-basement-garage-cabinets",
    "ids": "13-23,25-34,37-46,48-57,59-61,63,67-72,75-79,82-86,88-96"
+  },
+  {
+   "room": "Wine Cellar",
+   "key": "j936-barry-st-basement-wine-cellar",
+   "ids": "141-156,186-187,190-205,235,238-253,283,286-301,331,335-365,367-397"
   }
  ]
 }
