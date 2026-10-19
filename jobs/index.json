@@ -1,6 +1,38 @@
 {
  "jobs": [
   {
+   "key": "j936-barry-st-basement-wine-cellar",
+   "name": "J936 - Barry St Basement - Wine Cellar",
+   "number": "J936",
+   "room": "Wine Cellar",
+   "cabs": 21,
+   "parts": 131,
+   "updated": "2026-10-20 08:05",
+   "parent": "j936-barry-st-basement",
+   "docs": [
+    {
+     "t": "assembly",
+     "name": "Barry St - Cellar - Assembly Sheets",
+     "f": "docs/j936-barry-st-basement/barry-st-cellar-assembly-sheets.pdf"
+    },
+    {
+     "t": "shop",
+     "name": "Final - Barry St - Basement Cellar",
+     "f": "docs/j936-barry-st-basement/final-barry-st-basement-cellar.pdf"
+    },
+    {
+     "t": "assembly",
+     "name": "Barry St - Garage Cabinets - Assembly",
+     "f": "docs/j936-barry-st-basement/barry-st-garage-cabinets-assembly.pdf"
+    },
+    {
+     "t": "shop",
+     "name": "Final - Barry St - Garage Cabinets",
+     "f": "docs/j936-barry-st-basement/final-barry-st-garage-cabinets.pdf"
+    }
+   ]
+  },
+  {
    "key": "j936-barry-st-basement-basement-bar",
    "name": "J936 - Barry St Basement - Basement Bar",
    "number": "J936",
@@ -12,16 +44,6 @@
    "docs": [
     {
      "t": "assembly",
-     "name": "Barry St - Garage Cabinets - Assembly",
-     "f": "docs/j936-barry-st-basement/barry-st-garage-cabinets-assembly.pdf"
-    },
-    {
-     "t": "shop",
-     "name": "Final - Barry St - Garage Cabinets",
-     "f": "docs/j936-barry-st-basement/final-barry-st-garage-cabinets.pdf"
-    },
-    {
-     "t": "assembly",
      "name": "Barry St - Cellar - Assembly Sheets",
      "f": "docs/j936-barry-st-basement/barry-st-cellar-assembly-sheets.pdf"
     },
@@ -29,6 +51,16 @@
      "t": "shop",
      "name": "Final - Barry St - Basement Cellar",
      "f": "docs/j936-barry-st-basement/final-barry-st-basement-cellar.pdf"
+    },
+    {
+     "t": "assembly",
+     "name": "Barry St - Garage Cabinets - Assembly",
+     "f": "docs/j936-barry-st-basement/barry-st-garage-cabinets-assembly.pdf"
+    },
+    {
+     "t": "shop",
+     "name": "Final - Barry St - Garage Cabinets",
+     "f": "docs/j936-barry-st-basement/final-barry-st-garage-cabinets.pdf"
     }
    ]
   },
@@ -44,16 +76,6 @@
    "docs": [
     {
      "t": "assembly",
-     "name": "Barry St - Garage Cabinets - Assembly",
-     "f": "docs/j936-barry-st-basement/barry-st-garage-cabinets-assembly.pdf"
-    },
-    {
-     "t": "shop",
-     "name": "Final - Barry St - Garage Cabinets",
-     "f": "docs/j936-barry-st-basement/final-barry-st-garage-cabinets.pdf"
-    },
-    {
-     "t": "assembly",
      "name": "Barry St - Cellar - Assembly Sheets",
      "f": "docs/j936-barry-st-basement/barry-st-cellar-assembly-sheets.pdf"
     },
@@ -61,6 +83,16 @@
      "t": "shop",
      "name": "Final - Barry St - Basement Cellar",
      "f": "docs/j936-barry-st-basement/final-barry-st-basement-cellar.pdf"
+    },
+    {
+     "t": "assembly",
+     "name": "Barry St - Garage Cabinets - Assembly",
+     "f": "docs/j936-barry-st-basement/barry-st-garage-cabinets-assembly.pdf"
+    },
+    {
+     "t": "shop",
+     "name": "Final - Barry St - Garage Cabinets",
+     "f": "docs/j936-barry-st-basement/final-barry-st-garage-cabinets.pdf"
     }
    ]
   },
@@ -664,16 +696,6 @@
      "f": "docs/j1022-moorehouse/j1022-moorehouse-vanities-production.pdf"
     }
    ]
-  },
-  {
-   "key": "j936-barry-st-basement-wine-cellar",
-   "name": "J936 - Barry St Basement - Wine Cellar",
-   "number": "J936",
-   "room": "Wine Cellar",
-   "cabs": 21,
-   "parts": 131,
-   "updated": "2026-10-16 14:12",
-   "parent": "j936-barry-st-basement"
   },
   {
    "key": "179-drysdale-ave-narre-warren",
