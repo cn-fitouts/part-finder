@@ -2,6 +2,11 @@
  "job": "J936 - Barry St Basement",
  "rooms": [
   {
+   "room": "Basement Bar",
+   "key": "j936-barry-st-basement-basement-bar",
+   "ids": "443-444,447-484,498-511,514-523"
+  },
+  {
    "room": "Garage Cabinets",
    "key": "j936-barry-st-basement-garage-cabinets",
    "ids": "13-23,25-34,37-46,48-57,59-61,63,67-72,75-79,82-86,88-96"

@@ -1,6 +1,28 @@
 {
  "jobs": [
   {
+   "key": "j936-barry-st-basement-basement-bar",
+   "name": "J936 - Barry St Basement - Basement Bar",
+   "number": "J936",
+   "room": "Basement Bar",
+   "cabs": 8,
+   "parts": 64,
+   "updated": "2026-10-19 15:14",
+   "parent": "j936-barry-st-basement",
+   "docs": [
+    {
+     "t": "assembly",
+     "name": "Barry St - Garage Cabinets - Assembly",
+     "f": "docs/j936-barry-st-basement/barry-st-garage-cabinets-assembly.pdf"
+    },
+    {
+     "t": "shop",
+     "name": "Final - Barry St - Garage Cabinets",
+     "f": "docs/j936-barry-st-basement/final-barry-st-garage-cabinets.pdf"
+    }
+   ]
+  },
+  {
    "key": "j936-barry-st-basement-garage-cabinets",
    "name": "J936 - Barry St Basement - Garage Cabinets",
    "number": "J936",
