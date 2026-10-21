@@ -1,45 +1,25 @@
 {
- "job": "J1022 - Moorehouse",
+ "job": "J1022 Moorehouse",
  "rooms": [
   {
-   "room": "Bathroom",
-   "key": "j1022-moorehouse-bathroom",
-   "ids": "58-82,86-92,95-100,103-111,114-119,122-130"
+   "room": "Bed 2 Fireplace",
+   "key": "j1022-moorehouse-bed-2-fireplace",
+   "ids": "701-708,710-717,719-724,727-732,735-736,742,752-755,757,767-770"
   },
   {
-   "room": "Bed 2 Robe",
-   "key": "j1022-moorehouse-bed-2-robe",
-   "ids": "146-169,171-209,211,213-214"
+   "room": "Dining and Family",
+   "key": "j1022-moorehouse-dining-and-family",
+   "ids": "488-503,505-524,527-570,572-583,585-592,595,600-634"
   },
   {
-   "room": "Bed 3 Robe",
-   "key": "j1022-moorehouse-bed-3-robe",
-   "ids": "215-239,241-279,281,283"
+   "room": "Kitchen Pantry",
+   "key": "j1022-moorehouse-kitchen-pantry",
+   "ids": "1-6,8-23,26-36,38-57,59,61-93,95-141,143-176,180,184-201,204-221,228-237,239-254,259-274,279-280,283-300,302-346,349-363,365-368,370-374,376-377,380-390,392-481,483-487"
   },
   {
-   "room": "Ensuite",
-   "key": "j1022-moorehouse-ensuite",
-   "ids": "1-21,25-31,34-39,42-46,49-54,57"
-  },
-  {
-   "room": "Laundry",
-   "key": "j1022-moorehouse-laundry",
-   "ids": "1-81,85-95,100-126,128-139"
-  },
-  {
-   "room": "Master WIR",
-   "key": "j1022-moorehouse-master-wir",
-   "ids": "1-26,28,30-46,48-66,68,70-145"
-  },
-  {
-   "room": "Powder",
-   "key": "j1022-moorehouse-powder",
-   "ids": "134-139,141-145,152-158,160-169,201,208,219,227"
-  },
-  {
-   "room": "Study",
-   "key": "j1022-moorehouse-study",
-   "ids": "1-73"
+   "room": "Lounge",
+   "key": "j1022-moorehouse-lounge",
+   "ids": "635-668,674,684-687,689,699-702"
   }
  ]
 }
