@@ -2160,6 +2160,7 @@ fetch('jobs/hardware_names.json', {cache: 'no-cache'}).then(r => r.ok ? r.json()
 // a drawer's system, from the metal sides CV draws for it: Blum Legrabox sides are ~12.7 mm thick, as long as
 // the runner (550 = 550 mm) and one of five heights (N 66.5, M 90.5, K 128.5, C 177, F 241); colour from the model
 const LEGRA = [['N', 66.5], ['M', 90.5], ['K', 128.5], ['C', 177], ['F', 241]];
+const METABOX = [['N', 54], ['M', 86], ['K', 118], ['H', 150]];
 function drawerSpec(mv){
   const sides = (mv.m.ctx || []).map(i => hardware[i]).filter(h => h && /^_DGSIDE$/i.test(h.p.c || ''));
   if (!sides.length) return {name: 'Drawer', runners: true};
@@ -2170,6 +2171,8 @@ function drawerSpec(mv){
   const colour = lum > 0.75 ? 'white' : lum < 0.2 ? 'black' : 'grey';
   const code = LEGRA.find(([, v]) => Math.abs(v - h) <= 5);
   if (t > 10 && t < 15 && code) return {name: 'Legrabox ' + nominal + ' ' + code[0] + ' · ' + colour, runners: false};
+  const mb = METABOX.find(([, v]) => Math.abs(v - h) <= 4);         // Blum Metabox: steel sides N 54, M 86, K 118, H 150 high
+  if (t > 10 && t < 15 && mb) return {name: 'Metabox ' + nominal + ' ' + mb[0], runners: false};   // (colour: CV's picture says white, the model draws them dark - left off)
   return {name: 'Drawer · ' + nominal + ' runner (side ' + Math.round(h) + ' high)', runners: false};
 }
 // banding in a few characters: "2 · NENE" (edges taped, then CV's code without its leading count)
