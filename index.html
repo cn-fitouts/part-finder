@@ -952,7 +952,10 @@ async function openRoom(list){
   const p = (Q.get('p') || decodeURIComponent(location.hash.slice(1))).replace(/^p/i, '').trim();
   const has = (ids, id) => String(ids || '').split(',').some(r => {
     const [a, b] = r.split('-'); return b === undefined ? r === id : /^\d+$/.test(id) && +id >= +a && +id <= +b; });
-  const hits = list.rooms.filter(r => p ? has(r.ids, p) : list.rooms.length === 1);
+  let hits = list.rooms.filter(r => p ? has(r.ids, p) : list.rooms.length === 1);
+  // two CV jobs named alike ("J1022 - Moorehouse" / "J1022 Moorehouse") share one list and reuse part numbers:
+  // the sticker's own job name picks the room
+  if (hits.length > 1 && hits.some(r => r.cv)) hits = hits.filter(r => (r.cv || '').trim().toLowerCase() === RAWJ.toLowerCase());
   if (hits.length === 1){
     const r = await fetch('jobs/' + encodeURIComponent(hits[0].key) + '.json').catch(() => null);
     if (r && r.ok) return start(await r.json());
