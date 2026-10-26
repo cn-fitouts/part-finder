@@ -1,6 +1,42 @@
 {
  "jobs": [
   {
+   "key": "j1086-millers",
+   "name": "J1086 - Millers",
+   "number": "J1086",
+   "room": "Office",
+   "cabs": 20,
+   "parts": 86,
+   "updated": "2026-10-26 15:00",
+   "docs": [
+    {
+     "t": "assembly",
+     "name": "J1086 - Millers - Office - Final-Assembly",
+     "f": "docs/j1086-millers/j1086-millers-office-final-assembly.pdf"
+    },
+    {
+     "t": "hardware",
+     "name": "J1086 - Millers - Office - Final-Hardware",
+     "f": "docs/j1086-millers/j1086-millers-office-final-hardware.pdf"
+    },
+    {
+     "t": "shop",
+     "name": "J1086 - Millers - Office - Final",
+     "f": "docs/j1086-millers/j1086-millers-office-final.pdf"
+    },
+    {
+     "t": "assembly",
+     "name": "J1086 - Millers - Office-Assembly",
+     "f": "docs/j1086-millers/j1086-millers-office-assembly.pdf"
+    },
+    {
+     "t": "hardware",
+     "name": "J1086 - Millers - Office-Hardware",
+     "f": "docs/j1086-millers/j1086-millers-office-hardware.pdf"
+    }
+   ]
+  },
+  {
    "key": "j936-barry-st-basement-wine-cellar",
    "name": "J936 - Barry St Basement - Wine Cellar",
    "number": "J936",
@@ -207,32 +243,6 @@
      "t": "shop",
      "name": "Final - Barry St - Garage Cabinets",
      "f": "docs/j936-barry-st-basement/final-barry-st-garage-cabinets.pdf"
-    }
-   ]
-  },
-  {
-   "key": "j1086-millers",
-   "name": "J1086 - Millers",
-   "number": "J1086",
-   "room": "Office",
-   "cabs": 25,
-   "parts": 96,
-   "updated": "2026-10-23 07:59",
-   "docs": [
-    {
-     "t": "assembly",
-     "name": "J1086 - Millers - Office-Assembly",
-     "f": "docs/j1086-millers/j1086-millers-office-assembly.pdf"
-    },
-    {
-     "t": "shop",
-     "name": "J1086 - Millers - Office-Final",
-     "f": "docs/j1086-millers/j1086-millers-office-final.pdf"
-    },
-    {
-     "t": "hardware",
-     "name": "J1086 - Millers - Office-Hardware",
-     "f": "docs/j1086-millers/j1086-millers-office-hardware.pdf"
     }
    ]
   },
