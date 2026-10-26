@@ -6,8 +6,8 @@
    "number": "J1022",
    "room": "Master WIR",
    "cabs": 19,
-   "parts": 65,
-   "updated": "2026-10-27 09:00",
+   "parts": 140,
+   "updated": "2026-10-27 09:56",
    "parent": "j1022-moorehouse",
    "docs": [
     {
@@ -93,6 +93,27 @@
    ]
   },
   {
+   "key": "fat-ass-alfresco",
+   "name": "Fat Ass Alfresco",
+   "number": "",
+   "room": "Alfresco",
+   "cabs": 10,
+   "parts": 63,
+   "updated": "2026-10-27 09:56",
+   "docs": [
+    {
+     "t": "assembly",
+     "name": "Fat Ass Alfresco - Assembly Sheets",
+     "f": "docs/fat-ass-alfresco/fat-ass-alfresco-assembly-sheets.pdf"
+    },
+    {
+     "t": "shop",
+     "name": "Final - Fat Ass Alfresco",
+     "f": "docs/fat-ass-alfresco/final-fat-ass-alfresco.pdf"
+    }
+   ]
+  },
+  {
    "key": "j1086-millers",
    "name": "J1086 - Millers",
    "number": "J1086",
@@ -140,16 +161,6 @@
    "docs": [
     {
      "t": "assembly",
-     "name": "Barry St Basement Bar - Assembly Sheets",
-     "f": "docs/j936-barry-st-basement/barry-st-basement-bar-assembly-sheets.pdf"
-    },
-    {
-     "t": "shop",
-     "name": "Final - J936 - Barry St - Basement Bar",
-     "f": "docs/j936-barry-st-basement/final-j936-barry-st-basement-bar.pdf"
-    },
-    {
-     "t": "assembly",
      "name": "Barry St - Cellar - Assembly Sheets",
      "f": "docs/j936-barry-st-basement/barry-st-cellar-assembly-sheets.pdf"
     },
@@ -167,6 +178,16 @@
      "t": "shop",
      "name": "Final - Barry St - Garage Cabinets",
      "f": "docs/j936-barry-st-basement/final-barry-st-garage-cabinets.pdf"
+    },
+    {
+     "t": "assembly",
+     "name": "Barry St Basement Bar - Assembly Sheets",
+     "f": "docs/j936-barry-st-basement/barry-st-basement-bar-assembly-sheets.pdf"
+    },
+    {
+     "t": "shop",
+     "name": "Final - J936 - Barry St - Basement Bar",
+     "f": "docs/j936-barry-st-basement/final-j936-barry-st-basement-bar.pdf"
     }
    ]
   },
@@ -266,16 +287,6 @@
    "docs": [
     {
      "t": "assembly",
-     "name": "Barry St Basement Bar - Assembly Sheets",
-     "f": "docs/j936-barry-st-basement/barry-st-basement-bar-assembly-sheets.pdf"
-    },
-    {
-     "t": "shop",
-     "name": "Final - J936 - Barry St - Basement Bar",
-     "f": "docs/j936-barry-st-basement/final-j936-barry-st-basement-bar.pdf"
-    },
-    {
-     "t": "assembly",
      "name": "Barry St - Cellar - Assembly Sheets",
      "f": "docs/j936-barry-st-basement/barry-st-cellar-assembly-sheets.pdf"
     },
@@ -293,6 +304,16 @@
      "t": "shop",
      "name": "Final - Barry St - Garage Cabinets",
      "f": "docs/j936-barry-st-basement/final-barry-st-garage-cabinets.pdf"
+    },
+    {
+     "t": "assembly",
+     "name": "Barry St Basement Bar - Assembly Sheets",
+     "f": "docs/j936-barry-st-basement/barry-st-basement-bar-assembly-sheets.pdf"
+    },
+    {
+     "t": "shop",
+     "name": "Final - J936 - Barry St - Basement Bar",
+     "f": "docs/j936-barry-st-basement/final-j936-barry-st-basement-bar.pdf"
     }
    ]
   },
