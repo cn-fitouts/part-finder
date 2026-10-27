@@ -436,6 +436,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
     <div class="vg velev" id="vElev" role="group" aria-label="Wall elevations" hidden>
       <i class="vcap">Walls</i><button id="vElPrev" aria-label="Previous wall or saved view">&lsaquo;</button><span id="vElName">3D</span><button id="vElNext" aria-label="Next wall or saved view">&rsaquo;</button>
     </div>
+    <div class="vg vsnap" id="vSnap" role="group" aria-label="Look square-on from"><i class="vcap">Look</i><button data-snap="top" aria-pressed="false" title="From above">Top</button><button data-snap="front" aria-pressed="false" title="Square-on to the front">Front</button><button data-snap="back" aria-pressed="false" title="From behind">Back</button><button data-snap="left" aria-pressed="false" title="From the left end">Left</button><button data-snap="right" aria-pressed="false" title="From the right end">Right</button><button data-snap="3d" title="Back to the 3D view">3D</button></div>
     <div class="vg" role="group" aria-label="Saved views"><button id="vSave" title="Save this view - the room, a cabinet or a part on its own - to come back to it with the arrows">&#9733; Save view</button></div>
     <div class="vg" role="group" aria-label="Cabinets">
       <button id="vMulti" aria-pressed="false" title="Pick several cabinets to view together">Select cabs</button>
@@ -1989,6 +1990,7 @@ function jobFront(){
   return c.addScaledVector(n.normalize(), 1000);
 }
 function reframe(){
+  if (snapOn) snapOff(false);
   if (typeof elevI !== 'undefined' && elevI >= 0){ elevI = -1; camera.fov = ORBIT_FOV; camera.updateProjectionMatrix(); elevLabel(); }
   if (solo){                                 // a part on its own: look at its broad face (an end panel side-on, not edge-on)
     const b = solo.box, c = b.getCenter(new THREE.Vector3()), s = b.getSize(new THREE.Vector3()), t = s.x <= s.y && s.x <= s.z ? 'x' : s.y <= s.z ? 'y' : 'z';
@@ -2395,6 +2397,7 @@ function elevLabel(){
   $('vElName').textContent = 'Wall ' + (elevI + 1) + '/' + elevs.length + (nos.length ? ' · ' + (nos.length > 1 ? nos[0] + '–' + nos[nos.length - 1] : nos[0]) : '');
 }
 function goElev(i){
+  if (snapOn){ snapOn = false; snapPressed(); }
   const total = elevs.length + savedViews.length; if (!total) return;
   if (i >= total) i = -1; if (i < -1) i = total - 1;
   if (i >= elevs.length) return goSaved(i - elevs.length);
@@ -2410,6 +2413,58 @@ function goElev(i){
   camera.far = dist + depth + 8000; camera.updateProjectionMatrix();
   controls.target.copy(c); controls.update(); elevLabel(); forceFrame = true;
 }
+// ---- square-on views: Top / Front / Back / Left / Right of what's on screen - the whole job, the isolated
+// cabinet(s), or the part on its own. "Front" is the side its doors face. A long lens (like the wall elevations)
+// keeps it close to a flat drawing; turning the view goes back to the normal lens without a jump.
+var snapOn = false, snapDepth = 0;
+function snapSubject(){
+  if (solo){ const cab = parts.filter(x => x.p.g === solo.p.g);            // (a part faces the way its cabinet does)
+    return {box: solo.box.clone(), front: cabFront(cab), from: boxOf(cab).getCenter(new THREE.Vector3())}; }
+  if (iso !== null){
+    const cab = parts.filter(x => isoGs.has(x.p.g)), longOk = x => { const c = CABS[x.p.g], W = c && c.whd ? Math.max(c.whd[0], c.whd[2]) : 0;
+      const s = x.box.getSize(new THREE.Vector3()); return !W || Math.max(s.x, s.z) <= W + 60; };
+    const core = cab.filter(longOk);
+    return {box: boxOf((core.length ? core : cab).concat(hardware.filter(h => isoGs.has(h.p.g) && longOk(h)))), front: cabFront(cab)};
+  }
+  return {box: boxOf(parts.concat(hardware.filter(isTop))), front: jobFront()};
+}
+function snapView(kind){
+  if (kind === '3d'){ snapOff(true); return; }
+  if (elevI >= 0){ elevI = -1; elevLabel(); }
+  faceCut = false;
+  const {box, front, from} = snapSubject(), c = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3());
+  let f = front ? front.clone().sub(from || c).setY(0) : new THREE.Vector3(0, 0, 1);
+  if (f.length() < 1) f.set(0, 0, 1); f.normalize();
+  if (Math.abs(f.x) >= Math.abs(f.z)) f.set(Math.sign(f.x), 0, 0); else f.set(0, 0, Math.sign(f.z));   // square to the room (an L-shaped job averages to a corner)
+  const right = new THREE.Vector3().crossVectors(f.clone().negate(), new THREE.Vector3(0, 1, 0)).normalize();
+  const dir = {front: f, back: f.clone().negate(), right, left: right.clone().negate(), top: new THREE.Vector3(0, 1, 0)}[kind];
+  const ext = v => Math.abs(v.x) * size.x + Math.abs(v.y) * size.y + Math.abs(v.z) * size.z;   // the box's size along v
+  const across = kind === 'top' ? right : new THREE.Vector3().crossVectors(dir, new THREE.Vector3(0, 1, 0)).normalize();
+  const w = ext(across), h = kind === 'top' ? ext(f) : size.y, depth = ext(dir);
+  camera.fov = ELEV_FOV; camera.updateProjectionMatrix();
+  const vf = THREE.MathUtils.degToRad(ELEV_FOV) / 2, hf = Math.atan(Math.tan(vf) * camera.aspect);
+  const dist = Math.max(h * 0.58 / Math.tan(vf), w * 0.56 / Math.tan(hf), 600);
+  camera.position.copy(c).addScaledVector(dir, depth / 2 + dist);
+  if (kind === 'top') camera.position.addScaledVector(f, (depth / 2 + dist) * 0.002);   // (front at the bottom of the screen)
+  // anything between the camera and the front of what's being looked at (a wall, the other leg of an L) is cut away,
+  // like the wall elevations, until the view is turned
+  camera.near = Math.max(20, dist - 100); camera.far = dist + depth + 20000; camera.updateProjectionMatrix();
+  controls.target.copy(c); controls.update(); forceFrame = true; markDirty();
+  snapOn = kind; snapDepth = depth / 2; snapPressed();
+}
+function snapPressed(){ document.querySelectorAll('#vSnap [data-snap]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.snap === snapOn))); }
+// back to the normal lens: from where the camera is (turning the view), or the usual 3D view (the 3D button)
+function snapOff(reset){
+  if (!snapOn){ if (reset) reframe(); return; }
+  snapOn = false; snapPressed();
+  const t = controls.target, d = camera.position.distanceTo(t), k = Math.tan(THREE.MathUtils.degToRad(ELEV_FOV) / 2) / Math.tan(THREE.MathUtils.degToRad(ORBIT_FOV) / 2);
+  camera.fov = ORBIT_FOV;
+  camera.position.copy(t).add(camera.position.clone().sub(t).setLength(Math.max(d * k, snapDepth + 400)));   // (the same size on screen, never inside it)
+  camera.near = Math.max(20, d * k / 200); camera.updateProjectionMatrix(); controls.update(); forceFrame = true;
+  if (reset) reframe();
+}
+document.querySelectorAll('#vSnap [data-snap]').forEach(b => b.onclick = () => snapView(b.dataset.snap));
+controls.addEventListener('start', () => { if (snapOn) snapOff(false); });
 $('vElPrev').onclick = () => goElev(elevI - 1);
 $('vElNext').onclick = () => goElev(elevI + 1);
 controls.addEventListener('start', () => { if (elevI >= 0 || faceCut){ faceCut = false; camera.near = Math.max(20, camera.position.distanceTo(controls.target) / 200); camera.updateProjectionMatrix(); } });
