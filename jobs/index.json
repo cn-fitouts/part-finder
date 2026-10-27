@@ -1,6 +1,114 @@
 {
  "jobs": [
   {
+   "key": "j1122-235-esplanade-bed-4-robe",
+   "name": "J1122 - 235 Esplanade - Bed 4 Robe",
+   "number": "J1122",
+   "room": "Bed 4 Robe",
+   "cabs": 7,
+   "parts": 80,
+   "updated": "2026-10-27 15:01",
+   "parent": "j1122-235-esplanade",
+   "docs": [
+    {
+     "t": "assembly",
+     "name": "J1122 - 235 Esplanade - Robes-Assembly",
+     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-robes-assembly.pdf"
+    },
+    {
+     "t": "shop",
+     "name": "J1122 - 235 Esplanade - Robes-Final",
+     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-robes-final.pdf"
+    },
+    {
+     "t": "hardware",
+     "name": "J1122 - 235 Esplanade - Robes-Hardware",
+     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-robes-hardware.pdf"
+    }
+   ]
+  },
+  {
+   "key": "j1122-235-esplanade-master-wir",
+   "name": "J1122 - 235 Esplanade - Master WIR",
+   "number": "J1122",
+   "room": "Master WIR",
+   "cabs": 14,
+   "parts": 148,
+   "updated": "2026-10-27 15:01",
+   "parent": "j1122-235-esplanade",
+   "docs": [
+    {
+     "t": "assembly",
+     "name": "J1122 - 235 Esplanade - Robes-Assembly",
+     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-robes-assembly.pdf"
+    },
+    {
+     "t": "shop",
+     "name": "J1122 - 235 Esplanade - Robes-Final",
+     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-robes-final.pdf"
+    },
+    {
+     "t": "hardware",
+     "name": "J1122 - 235 Esplanade - Robes-Hardware",
+     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-robes-hardware.pdf"
+    }
+   ]
+  },
+  {
+   "key": "j1122-235-esplanade-bed-2-robe",
+   "name": "J1122 - 235 Esplanade - Bed 2 Robe",
+   "number": "J1122",
+   "room": "Bed 2 Robe",
+   "cabs": 7,
+   "parts": 81,
+   "updated": "2026-10-27 15:00",
+   "parent": "j1122-235-esplanade",
+   "docs": [
+    {
+     "t": "assembly",
+     "name": "J1122 - 235 Esplanade - Robes-Assembly",
+     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-robes-assembly.pdf"
+    },
+    {
+     "t": "shop",
+     "name": "J1122 - 235 Esplanade - Robes-Final",
+     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-robes-final.pdf"
+    },
+    {
+     "t": "hardware",
+     "name": "J1122 - 235 Esplanade - Robes-Hardware",
+     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-robes-hardware.pdf"
+    }
+   ]
+  },
+  {
+   "key": "j1122-235-esplanade-bed-3-robe",
+   "name": "J1122 - 235 Esplanade - Bed 3 Robe",
+   "number": "J1122",
+   "room": "Bed 3 Robe",
+   "cabs": 7,
+   "parts": 82,
+   "updated": "2026-10-27 15:00",
+   "parent": "j1122-235-esplanade",
+   "docs": [
+    {
+     "t": "assembly",
+     "name": "J1122 - 235 Esplanade - Robes-Assembly",
+     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-robes-assembly.pdf"
+    },
+    {
+     "t": "shop",
+     "name": "J1122 - 235 Esplanade - Robes-Final",
+     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-robes-final.pdf"
+    },
+    {
+     "t": "hardware",
+     "name": "J1122 - 235 Esplanade - Robes-Hardware",
+     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-robes-hardware.pdf"
+    }
+   ]
+  },
+  {
    "key": "j1022-moorehouse-master-wir",
    "name": "J1022 - Moorehouse - Master WIR",
    "number": "J1022",
