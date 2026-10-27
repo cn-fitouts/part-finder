@@ -199,6 +199,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
 .hidebar span{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .hidebar button{flex:none;font:600 14px var(--display);border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:999px;padding:6px 12px;min-height:36px;cursor:pointer}
 .hidebar button.pri{background:var(--cyan);border-color:var(--cyan);color:#fff}
+#room:not(:empty)::before{content:' \00B7  '}
 .scantoast{position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:50;background:var(--fg);color:var(--bg);font:600 15px var(--display);padding:10px 16px;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:calc(100% - 32px)}
 .scan{position:fixed;inset:0;z-index:50;background:#000;display:flex;align-items:center;justify-content:center}
 .scan video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
@@ -396,7 +397,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
 </style>
 
 </head><body>
-<div class="strip"><span><a href="./" id="backLink" title="All jobs"><img class="brandlogo" src="logo-mark.png" alt="">&lsaquo; Jobs</a> · <b id="job">–</b> · <span id="room">Room 1</span></span><nav class="roomnav" id="roomNav" hidden aria-label="Rooms in this job"><a id="roomPrev" aria-label="Previous room">&lsaquo;</a><span id="roomName"></span><a id="roomNext" aria-label="Next room">&rsaquo;</a></nav><span class="right"><span class="docbtns" id="docBtns" hidden role="group" aria-label="Job PDFs"><button type="button" data-doc="shop" aria-pressed="false">Shop drawings</button><button type="button" data-doc="assembly" aria-pressed="false">Assembly</button><button type="button" data-doc="hardware" aria-pressed="false">Hardware</button></span><button type="button" class="scanbtn" data-scan>Scan</button><span id="count"></span></span></div>
+<div class="strip"><span><a href="./" id="backLink" title="All jobs"><img class="brandlogo" src="logo-mark.png" alt="">&lsaquo; Jobs</a> · <b id="job">–</b><span id="room"></span></span><nav class="roomnav" id="roomNav" hidden aria-label="Rooms in this job"><a id="roomPrev" aria-label="Previous room">&lsaquo;</a><span id="roomName"></span><a id="roomNext" aria-label="Next room">&rsaquo;</a></nav><span class="right"><span class="docbtns" id="docBtns" hidden role="group" aria-label="Job PDFs"><button type="button" data-doc="shop" aria-pressed="false">Shop drawings</button><button type="button" data-doc="assembly" aria-pressed="false">Assembly</button><button type="button" data-doc="hardware" aria-pressed="false">Hardware</button></span><button type="button" class="scanbtn" data-scan>Scan</button><span id="count"></span></span></div>
 <main class="home" id="home" hidden>
   <div class="in">
     <nav class="crumbs" id="crumbs" aria-label="Where you are" hidden></nav>
@@ -2035,7 +2036,7 @@ function show(x){
     card.classList.remove('empty'); $('pid').textContent = p.id;
     $('pname').textContent = p.name;
     $('pwhere').textContent = 'Cab ' + p.cabNo + ' · ' + p.cabName;
-    $('room').textContent = p.room || 'Room 1';
+    $('room').textContent = '';                  // (no "Room 1": room pages already carry the room in the job name)
     const t = Number.isFinite(p.thick) ? Math.round(p.thick) : '';
     $('pspecs').innerHTML =
       '<span><b>' + Math.round(p.L) + ' × ' + Math.round(p.W) + (t ? ' × ' + t : '') + '</b> mm</span>' +
@@ -2109,7 +2110,7 @@ function isolate(g){
     const nos = gs.map(cabNoOf).filter(Boolean).sort((a, b) => (parseInt(a) || 0) - (parseInt(b) || 0));
     $('room').textContent = gs.length > 1 ? 'Cabs ' + (nos.length ? nos.join(', ') : gs.length) : named ? 'Cab ' + named.p.cabNo + ' · ' + named.p.cabName : no ? 'Cab ' + no : 'Cabinet';
   } else {
-    const p = sel && sel.p; $('room').textContent = (p && p.room) || (parts.find(x => x.p.room) || {p:{}}).p.room || 'Room 1';
+    $('room').textContent = '';
   }
   const on = g !== null; $('vBack').textContent = '‹ Back to job';
   $('vCab').hidden = on; $('vJob').hidden = on; $('vSee').hidden = !on;
@@ -2415,7 +2416,8 @@ function goElev(i){
 }
 // ---- square-on views: Top / Front / Back / Left / Right of what's on screen - the whole job, the isolated
 // cabinet(s), or the part on its own. "Front" is the side its doors face. A long lens (like the wall elevations)
-// keeps it close to a flat drawing; turning the view goes back to the normal lens without a jump.
+// keeps it close to a flat drawing. It stays locked square-on: zoom (wheel / pinch) and slide (right-drag / two
+// fingers) only - the 3D button gives the turning view back.
 var snapOn = false, snapDepth = 0;
 function snapSubject(){
   if (solo){ const cab = parts.filter(x => x.p.g === solo.p.g);            // (a part faces the way its cabinet does)
@@ -2449,14 +2451,14 @@ function snapView(kind){
   // anything between the camera and the front of what's being looked at (a wall, the other leg of an L) is cut away,
   // like the wall elevations, until the view is turned
   camera.near = Math.max(20, dist - 100); camera.far = dist + depth + 20000; camera.updateProjectionMatrix();
-  controls.target.copy(c); controls.update(); forceFrame = true; markDirty();
+  controls.target.copy(c); controls.enableRotate = false; controls.update(); forceFrame = true; markDirty();
   snapOn = kind; snapDepth = depth / 2; snapPressed();
 }
 function snapPressed(){ document.querySelectorAll('#vSnap [data-snap]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.snap === snapOn))); }
 // back to the normal lens: from where the camera is (turning the view), or the usual 3D view (the 3D button)
 function snapOff(reset){
   if (!snapOn){ if (reset) reframe(); return; }
-  snapOn = false; snapPressed();
+  snapOn = false; snapPressed(); controls.enableRotate = !(TOUCH && measuring);
   const t = controls.target, d = camera.position.distanceTo(t), k = Math.tan(THREE.MathUtils.degToRad(ELEV_FOV) / 2) / Math.tan(THREE.MathUtils.degToRad(ORBIT_FOV) / 2);
   camera.fov = ORBIT_FOV;
   camera.position.copy(t).add(camera.position.clone().sub(t).setLength(Math.max(d * k, snapDepth + 400)));   // (the same size on screen, never inside it)
@@ -2464,7 +2466,8 @@ function snapOff(reset){
   if (reset) reframe();
 }
 document.querySelectorAll('#vSnap [data-snap]').forEach(b => b.onclick = () => snapView(b.dataset.snap));
-controls.addEventListener('start', () => { if (snapOn) snapOff(false); });
+// zooming in a square-on view: the cut-away stays just in front of what's being looked at
+controls.addEventListener('change', () => { if (snapOn){ const n = Math.max(20, camera.position.distanceTo(controls.target) - snapDepth - 100); if (Math.abs(n - camera.near) > 1){ camera.near = n; camera.updateProjectionMatrix(); } } });
 $('vElPrev').onclick = () => goElev(elevI - 1);
 $('vElNext').onclick = () => goElev(elevI + 1);
 controls.addEventListener('start', () => { if (elevI >= 0 || faceCut){ faceCut = false; camera.near = Math.max(20, camera.position.distanceTo(controls.target) / 200); camera.updateProjectionMatrix(); } });
@@ -3504,7 +3507,7 @@ function setMeasuring(on){
     $('mSnap').textContent = TOUCH ? 'Drag a finger to a point and lift to place it (two fingers move the view) · snaps to corners and edges'
       : 'Click two points · snaps to corners, edge middles and edges · Shift for a free (angled) line · zoom in for small parts'; }
   else { mFirst = null; hideHover(); hideLoupe(); hintText(); updateCard(); }
-  if (TOUCH) controls.enableRotate = !on;          // one finger picks points; two fingers still move the view
+  controls.enableRotate = !(TOUCH && on) && !snapOn;   // one finger picks points (two fingers still move the view); a square-on view stays square
   $('hint').hidden = on; drawMeasures(); sideLists();
 }
 $('vMeasure').onclick = () => setMeasuring(!measuring);
