@@ -195,6 +195,10 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
 .turow button:first-child{background:var(--mid);color:#fff}
 #tuMsg{margin:0;font-size:12px;color:var(--muted)}
 .perfbox{position:fixed;left:8px;bottom:8px;z-index:60;margin:0;padding:8px 10px;border-radius:8px;background:rgba(0,33,46,.88);color:#e6f4fa;font:500 12px/1.4 var(--mono);white-space:pre-wrap;max-width:calc(100% - 16px);pointer-events:none}
+.hidebar{position:absolute;left:50%;top:58px;transform:translateX(-50%);z-index:3;display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:5px 6px 5px 14px;box-shadow:0 6px 20px rgba(0,0,0,.15);font-size:14px;max-width:calc(100% - 24px);white-space:nowrap}
+.hidebar span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.hidebar button{flex:none;font:600 14px var(--display);border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:999px;padding:6px 12px;min-height:36px;cursor:pointer}
+.hidebar button.pri{background:var(--cyan);border-color:var(--cyan);color:#fff}
 .scantoast{position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:50;background:var(--fg);color:var(--bg);font:600 15px var(--display);padding:10px 16px;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:calc(100% - 32px)}
 .scan{position:fixed;inset:0;z-index:50;background:#000;display:flex;align-items:center;justify-content:center}
 .scan video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
@@ -1493,6 +1497,7 @@ const CABS = JOB.cabs || [];
 const TYPE_NAMES = {base: 'Base cabinets', upper: 'Upper / overhead cabinets', tall: 'Tall cabinets', toe: 'Toe kicks & kickers',
   panel: 'Panels & fillers', bench: 'Benchtops & splashbacks'};
 const hiddenTypes = new Set(), hiddenMats = new Set(), hiddenParts = new Set();
+let sharedHide = new Set(), hideLoaded = false;   // parts hidden for everyone (team script), once loaded
 let hideHardware = false, hideWalls = false, hideRoom = false, hideCeiling = false;
 const isSheet = mi => !!((JOB.materials || [])[mi] || {}).sheet;
 const matName = mi => ((JOB.materials || [])[mi] || {}).name || 'Other finishes';
@@ -1685,6 +1690,54 @@ function applyVisibility(){
   // (a light that is off goes to zero rather than away: the shaders keep their light count, no stall while they rebuild)
   for (const L of ledLights) L.light.intensity = showLights && L.strips.some(h => h.glow.visible) ? LED_LEVEL : 0;
   updateLabels();
+  hideBar();
+}
+// ---- parts hidden for everyone: hide parts as usual, then "Save for everyone" keeps them hidden on every screen.
+// A part is known by its cut-list ID (or, with none, its code and where it sits), so a rebuilt job keeps the list.
+const hideKey = x => x.p.id ? 'id:' + x.p.id
+  : (x.p.code || x.p.k || 'x') + '@' + x.box.getCenter(new THREE.Vector3()).toArray().map(v => Math.round(v / 10)).join(',');
+const hideKeys = () => new Set([...hiddenParts].map(hideKey));
+function hideBar(){
+  if (!hideLoaded) return;
+  let bar = $('hideBar');
+  if (!bar){
+    bar = document.createElement('div'); bar.id = 'hideBar'; bar.className = 'hidebar'; bar.setAttribute('role', 'status');
+    $('stage').appendChild(bar);
+  }
+  const vb = $('stage').querySelector('.views'); bar.style.top = ((vb ? vb.offsetTop + vb.offsetHeight : 46) + 10) + 'px';   // (below the view buttons)
+  const mine = hideKeys(), same = mine.size === sharedHide.size && [...mine].every(k => sharedHide.has(k));
+  if (same && !sharedHide.size){ bar.hidden = true; return; }
+  bar.hidden = false; bar.innerHTML = '';
+  const txt = document.createElement('span'), btn = document.createElement('button'); btn.type = 'button';
+  const n = k => k + ' part' + (k === 1 ? '' : 's');
+  if (same){
+    txt.textContent = n(sharedHide.size) + ' hidden for everyone';
+    btn.textContent = 'Show';
+    btn.onclick = () => { hiddenParts.clear(); applyVisibility(); shadowDirty = true; markDirty(); if (!$('sheet').hidden) buildSheet(); };
+  } else {
+    txt.textContent = mine.size ? n(mine.size) + ' hidden on this screen' : 'All parts shown on this screen';
+    btn.textContent = mine.size ? 'Save hidden parts for all' : 'Show for everyone';
+    btn.className = 'pri';
+    btn.onclick = saveHidden;
+  }
+  bar.append(txt, btn);
+}
+async function saveHidden(){
+  const keys = [...hideKeys()].sort();
+  const r = await api({pf: 'hide.save', job: ENTRY, by: noteName, keys}, 20000);
+  if (!r.ok){ scanToast('Not saved: ' + (r.error || 'try again')); return; }
+  sharedHide = new Set(r.keys || keys); hideBar();
+  scanToast(keys.length ? 'Hidden parts saved for everyone' : 'All parts shown for everyone');
+}
+async function loadHidden(){
+  const r = await api({pf: 'hide', job: ENTRY}, 15000);
+  if (!r.ok) return;                               // (team script unreachable: hiding stays on this screen only)
+  sharedHide = new Set(r.keys || []);
+  if (sharedHide.size){
+    for (const x of parts.concat(hardware)) if (sharedHide.has(hideKey(x))) hiddenParts.add(x);
+    shadowDirty = true; markDirty();
+  }
+  hideLoaded = true; applyVisibility();
 }
 const PART_NAMES = {LU:'Left end', RU:'Right end', TO:'Top', BO:'Bottom', DE:'Bottom', UB:'Back', AS:'Adjustable shelf',
   FS:'Fixed shelf', PT:'Partition', SL:'Sleeper', FT:'Front toe', BT:'Back toe', SFT:'Kick face', BBK:'Drawer back',
@@ -3094,7 +3147,7 @@ new ResizeObserver(() => { if (docPdf && !$('docView').hidden){ clearTimeout(doc
   if (e){ const f = buildFolders(jobs).get(FOLDER) || buildFolders(jobs, null, true).get(FOLDER); folderEntries = f ? f.entries : []; }
   const wantCab = Q.get('cab');                    // (from an assembly sheet page: open that cabinet)
   if (wantCab){ const g = cabOrder().find(gg => String(cabNoOf(gg)) === wantCab); if (g !== undefined) isolate(g); }
-  await loadNotes(); loadFixes(); loadViews(); loadLooks();
+  await loadNotes(); loadFixes(); loadViews(); loadLooks(); loadHidden();
   const want = Q.get('note');
   if (want){ const n = jobNotes.find(x => x.id === want); if (n){ openNotes(true); goNote(n); } }
 })();
