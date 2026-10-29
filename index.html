@@ -200,6 +200,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
 .hidebar button{flex:none;font:600 14px var(--display);border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:999px;padding:6px 12px;min-height:36px;cursor:pointer}
 .hidebar button.pri{background:var(--cyan);border-color:var(--cyan);color:#fff}
 #room:not(:empty)::before{content:' \00B7  '}
+.approx{color:#E8A33D;font-weight:600}
 .scantoast{position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:50;background:var(--fg);color:var(--bg);font:600 15px var(--display);padding:10px 16px;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:calc(100% - 32px)}
 .scan{position:fixed;inset:0;z-index:50;background:#000;display:flex;align-items:center;justify-content:center}
 .scan video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
@@ -276,6 +277,14 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
 .sidelist tr.hwr small{color:var(--muted);font-size:11px}
 .sidelist tr.hidrow button,.tacts button{font:600 13px var(--display);padding:7px 12px;border-radius:6px;border:1px solid var(--cyan);background:var(--card);color:var(--cyan);cursor:pointer}
 .tacts{grid-column:1/-1;display:flex;gap:6px;margin-top:8px}
+/* "Re-cut this part": CN Tools' Re-cut page (a CNC program for one damaged part). Office PC only: it needs the W: drive */
+.recut{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:8px;min-width:0}
+.recut .rcgo,.recut .rccopy{font:600 13px var(--display);padding:8px 12px;min-height:36px;box-sizing:border-box;display:inline-flex;align-items:center;border-radius:6px;border:1px solid var(--cyan);background:var(--card);color:var(--cyan);cursor:pointer;text-decoration:none;white-space:nowrap}
+.recut .rcgo:hover,.recut .rccopy:hover{background:var(--pale)}
+.recut .rcgo:focus-visible,.recut .rccopy:focus-visible{outline:2px solid var(--hi);outline-offset:2px}
+.recut .rcgo[disabled]{border-color:var(--line);color:var(--muted);background:var(--card);cursor:not-allowed}
+.recut .rcnote{flex-basis:100%;font-size:12px;line-height:1.35;color:var(--muted);overflow-wrap:anywhere}
+.recut .rcnote b{color:var(--fg);font-weight:600;font-family:var(--mono)}
 /* job PDFs */
 .docbtns{display:flex;gap:4px;margin-right:6px}
 .docbtns button{font:600 12px var(--display);letter-spacing:.04em;text-transform:uppercase;padding:7px 10px;border-radius:6px;border:1px solid #2b3a42;background:#0b1114;color:#e6f4fa;cursor:pointer;min-height:34px}
@@ -505,6 +514,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
     <div class="where" id="twhere"></div>
     <div class="specs" id="tspecs"></div>
     <div class="note" id="tnote" hidden></div>
+    <div class="recut" id="tRecut" hidden></div>
     <div class="tacts" id="tActs" hidden><button type="button" id="tHide">Hide this part</button></div>
   </section>
   <section class="sheet" id="sheet" hidden aria-label="Show or hide">
@@ -525,6 +535,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
   <div class="name" id="pname">Scan a part label</div>
   <div class="where" id="pwhere">Scan a sticker to light up its part, or tap a cabinet to see its size.</div>
   <div class="specs" id="pspecs"></div>
+  <div class="recut" id="pRecut" hidden></div>
 </div>
 
 <section class="docview" id="docView" hidden aria-label="Job PDF">
@@ -1312,6 +1323,7 @@ function wallStep(){
   }
 }
 const byId = new Map(parts.filter(x => x.p.id).map(x => [String(x.p.id), x]));
+const unmatchedById = new Map((JOB.unmatched || []).filter(u => u.id && !byId.has(String(u.id))).map(u => [String(u.id), u]));   // (cut-list parts CV drew no board for)
 // ---- doors and drawers that open ----
 const movers = (JOB.movers || []).map(m => {
   const P = m.p ? new THREE.Vector3(m.p[0], m.p[1], m.p[2]) : new THREE.Vector3();
@@ -1685,7 +1697,7 @@ function applyVisibility(){
     else if (k === 'room') on = !hideRoom;
     else if (k === 'panel' && x.p.g < 0) on = !hiddenTypes.has('panel');
     else on = !hiddenTypes.has(typeOf(x.p.g)) && !(k === 'hw' && hideHardware);
-    if (hiddenParts.has(x) && x !== solo) on = false;
+    if (hiddenParts.has(x) && x !== solo && x !== sel && x !== tipSel) on = false;   // (the part you scanned or tapped always shows)
     for (const ob of x.meshes.concat(x.edges)) ob.visible = on && !(isSheet(ob.userData.mi) && hiddenMats.has(matName(ob.userData.mi)));
     if (x.glow) x.glow.visible = on && showLights;
   }
@@ -1800,9 +1812,9 @@ function buildSheet(){
     all.innerHTML = '<button type="button" id="showAll">Show all</button><button type="button" id="hideAll">Hide all</button>';
     body.appendChild(all);
     all.querySelector('#showAll').onclick = () => { list.forEach(x => hiddenParts.delete(x)); buildSheet(); applyVisibility(); };
-    all.querySelector('#hideAll').onclick = () => { list.forEach(x => hiddenParts.add(x)); buildSheet(); applyVisibility(); };
+    all.querySelector('#hideAll').onclick = () => { if (list.includes(sel)) show(null); list.forEach(x => hiddenParts.add(x)); buildSheet(); applyVisibility(); };
     for (const x of list)
-      body.appendChild(row(tagCab(x) + partLabel(x), (x.p.id ? '<b>ID ' + esc(x.p.id) + '</b> · ' : '') + sizeOf(x), !hiddenParts.has(x), on => on ? hiddenParts.delete(x) : hiddenParts.add(x)));
+      body.appendChild(row(tagCab(x) + partLabel(x), (x.p.id ? '<b>ID ' + esc(x.p.id) + '</b> · ' : '') + sizeOf(x), !hiddenParts.has(x), on => { if (!on && x === sel) show(null); on ? hiddenParts.delete(x) : hiddenParts.add(x); }));
     const hw = hardware.filter(h => isoGs.has(h.p.g) && !isTop(h));
     if (hw.length) body.appendChild(row('Hardware', hw.length + ' items', !hw.every(h => hiddenParts.has(h)), on => hw.forEach(h => on ? hiddenParts.delete(h) : hiddenParts.add(h))));
   }
@@ -2023,6 +2035,53 @@ function reframe(){
   }
 }
 
+// ---- "Re-cut this part": opens CN Tools' Re-cut page with this part's CV ID and its sizes exactly as the nest CSV has
+// them (never rounded), so the office PC can make a CNC program for just that part. The page needs the nest folder on
+// W:, so phones and tablets get the link to copy instead. Only parts from a nest CSV (an ID and a cut size): never
+// hardware, benchtops / stone, or parts not on the cut list.
+const RECUT_PAGE = 'https://cn-fitouts-tools.vercel.app/recut';
+const RECUT_TOUCH = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || !matchMedia('(any-pointer: fine)').matches;
+const RECUT_JOBNO = ((JOB.job || '').match(/(?:^|[^A-Za-z0-9])(J\d{3,})(?!\d)/i) || [])[1];
+const NOT_CNC = /stone|quartz|marble|caesar|dekton|granite|porcelain|neolith|laminam|silestone|terrazzo|travertine/i;
+const cutSize = v => typeof v === 'number' && Number.isFinite(v) && v > 0;
+function canRecut(x){
+  const p = x && x.p;
+  return !!(p && (parts.includes(x) || x.unmatched) && !isTop(x) && p.k !== 'hw' && p.id !== undefined && p.id !== null && String(p.id).trim() !== ''
+            && cutSize(p.L) && cutSize(p.W) && !NOT_CNC.test(p.material || ''));
+}
+function recutUrl(p){
+  const q = [['id', p.id], ['job', RECUT_JOBNO ? RECUT_JOBNO.toUpperCase() : ''], ['name', p.name], ['L', p.L], ['W', p.W],
+             ['cab', p.cabNo], ['t', cutSize(p.thick) ? p.thick : ''], ['dir', JOB.nestDir || '']];
+  return RECUT_PAGE + '?' + q.filter(([, v]) => v !== undefined && v !== null && String(v) !== '')
+    .map(([k, v]) => k + '=' + encodeURIComponent(String(v))).join('&');
+}
+// W:\Andrews Jobs\Moorehouse\KPFD -> W:\…\KPFD (the full path is in the tooltip and on the Re-cut page)
+const shortDir = d => { d = String(d); const sep = d.includes('\\') ? '\\' : '/', lead = (d.match(/^[\\/]+/) || [''])[0], b = d.split(/[\\/]+/).filter(Boolean);
+  return b.length > 2 ? lead + b[0] + sep + '…' + sep + b[b.length - 1] : d; };
+function copyText(text){
+  const old = () => { const t = document.createElement('textarea'); t.value = text; t.setAttribute('readonly', ''); t.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+    document.body.appendChild(t); t.select(); let ok = false; try { ok = document.execCommand('copy'); } catch (_) {} t.remove(); return ok; };
+  if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text).then(() => true, () => old());
+  return Promise.resolve(old());
+}
+function recutBox(el, x){
+  el.textContent = '';
+  if (!canRecut(x)){ el.hidden = true; return; }
+  const url = recutUrl(x.p), dir = JOB.nestDir || '', note = document.createElement('small');
+  note.className = 'rcnote';
+  if (RECUT_TOUCH){
+    const go = document.createElement('button'); go.type = 'button'; go.className = 'rcgo'; go.disabled = true; go.textContent = 'Re-cut this part ↗';
+    const cp = document.createElement('button'); cp.type = 'button'; cp.className = 'rccopy'; cp.textContent = 'Copy link';
+    cp.onclick = () => copyText(url).then(ok => { cp.textContent = ok ? 'Link copied' : 'Could not copy'; setTimeout(() => { cp.textContent = 'Copy link'; }, 2000); });
+    note.textContent = 'Re-cut on the office PC (needs the nest folder)';
+    el.append(go, cp, note);
+  } else {
+    const a = document.createElement('a'); a.className = 'rcgo'; a.href = url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'Re-cut this part ↗';
+    el.append(a);
+    if (dir){ note.title = dir; note.append('Open ', Object.assign(document.createElement('b'), {textContent: shortDir(dir)}), ' on the next page'); el.append(note); }
+  }
+  el.hidden = false;
+}
 function show(x){
   sel = x || null; selCab = null; $('ptag').textContent = 'ID';
   const card = $('card'); delete card.dataset.msg;
@@ -2031,6 +2090,7 @@ function show(x){
     $('pname').textContent = 'Scan a part label';
     $('pwhere').textContent = 'Scan a sticker to light up its part, or tap a cabinet to see its size.';
     $('pspecs').innerHTML = '';
+    recutBox($('pRecut'), null);
   } else {
     const p = sel.p;
     card.classList.remove('empty'); $('pid').textContent = p.id;
@@ -2040,12 +2100,15 @@ function show(x){
     const t = Number.isFinite(p.thick) ? Math.round(p.thick) : '';
     $('pspecs').innerHTML =
       '<span><b>' + Math.round(p.L) + ' × ' + Math.round(p.W) + (t ? ' × ' + t : '') + '</b> mm</span>' +
-      '<span>' + esc(p.material || '') + '</span><span>' + esc(p.code) + '</span>';
+      '<span>' + esc(p.material || '') + '</span><span>' + esc(p.code) + '</span>' +
+      (p.approx ? '<span class="approx">3D shape differs from the cut list (' + p.approx + ' mm) - sizes are the cut list\'s</span>' : '');
+    recutBox($('pRecut'), sel);
     infoClosed = false;
     // a part is usually inside its cabinet (a shelf behind the doors): see-through view, so it shows
     // through everything around it. The Solid button turns the solid view back on.
     setSolid(false);
   }
+  if (hiddenParts.size) applyVisibility();     // (a scanned part shows even when it's on the hidden list)
   updateCard(); paint(); reframe();
 }
 // whole job: a tap picks a cabinet (never a single part) and shows its number, name and size
@@ -2061,6 +2124,7 @@ function showCab(g){
   const n = parts.filter(x => x.p.g === g && x.p.id).length;
   $('pspecs').innerHTML = (c.whd ? '<span>W <b>' + fmt(c.whd[0]) + '</b> · H <b>' + fmt(c.whd[1]) + '</b> · D <b>' + fmt(c.whd[2]) + '</b> mm</span>' : '') +
     '<span>' + n + ' cut-list parts</span>';
+  recutBox($('pRecut'), null);
   updateCard(); paint(); sideLists();
 }
 
@@ -2068,7 +2132,21 @@ function fromHash(){
   const h = (Q.get('p') || decodeURIComponent(location.hash.slice(1))).replace(/^p/i, '');
   show(h ? byId.get(h) : null);
   if (h && !byId.has(h)){
-    $('pname').textContent = 'Part ' + h + ' is not in job ' + JOB.job; $('pwhere').textContent = 'Check the job number on the label.';
+    const u = unmatchedById.get(h);
+    if (u){                                      // on the cut list, but CV drew no board for it: its details, no 3D
+      const t = Number.isFinite(u.thick) ? Math.round(u.thick) : '';
+      $('pid').textContent = u.id; $('pname').textContent = u.name || u.code || 'Part ' + u.id;
+      $('pwhere').textContent = (u.cabNo ? 'Cab ' + u.cabNo : 'Cabinet') + (u.cabName ? ' · ' + u.cabName : '') + ' · not in the 3D model';
+      $('pspecs').innerHTML = '<span><b>' + Math.round(u.L) + ' × ' + Math.round(u.W) + (t ? ' × ' + t : '') + '</b> mm</span>' +
+        '<span>' + esc(u.material || '') + '</span><span>' + esc(u.code || '') + '</span>' +
+        (u.edges ? '<span>' + esc(edgeText(u.edges)) + '</span>' : '') +
+        (u.comment ? '<span>' + esc(u.comment) + '</span>' : '') +
+        '<span class="approx">CV drew no 3D board for this part (stone, or a CV layer was off at export)</span>';
+      $('card').classList.remove('empty');
+      recutBox($('pRecut'), {p: u, unmatched: true, meshes: []});
+    } else {
+      $('pname').textContent = 'Part ' + h + ' is not in job ' + JOB.job; $('pwhere').textContent = 'Check the job number on the label.';
+    }
     $('card').dataset.msg = '1'; infoClosed = false; updateCard();
   }
 }
@@ -2077,7 +2155,7 @@ addEventListener('hashchange', fromHash);
 scanPart = (j, p) => {
   if (!p || slug(j) !== slug(RAWJ) && !(NUM && slug(j) === slug(NUM[1]))) return false;
   const id = String(p).replace(/^p/i, '').trim();
-  if (!byId.has(id)) return false;               // (another room of the job: load that page)
+  if (!byId.has(id) && !unmatchedById.has(id)) return false;   // (another room of the job: load that page)
   Q.set('p', id);
   try { history.replaceState(null, '', location.pathname + '?' + Q.toString()); } catch (_) {}
   infoClosed = false; delete $('card').dataset.msg;
@@ -2559,15 +2637,17 @@ function showTip(x){
   if (mat) bits.push('<span>' + esc(mat) + '</span>');
   if (p.code || p.c) bits.push('<span>' + esc(p.code || p.c) + '</span>');
   if (p.edges) bits.push('<span>' + esc(edgeText(p.edges)) + '</span>');
+  if (p.approx) bits.push('<span class="approx">3D shape differs from the cut list (' + p.approx + ' mm) - sizes are the cut list\'s</span>');
   $('tspecs').innerHTML = bits.join('');
   $('tnote').hidden = !p.comment; $('tnote').textContent = p.comment || '';
+  recutBox($('tRecut'), x);
   $('tActs').hidden = iso === null || !!solo;
   $('tip').hidden = false; $('hint').hidden = true;
   paint();
 }
 $('tclose').onclick = () => showTip(null);
 // in an isolated cabinet: hide the tapped part (Show / hide, or the parts list's "Show hidden", brings it back)
-$('tHide').onclick = () => { const x = tipSel; if (!x) return; hiddenParts.add(x); showTip(null); applyVisibility(); shadowDirty = true; markDirty(); sideLists(); };
+$('tHide').onclick = () => { const x = tipSel; if (!x) return; if (x === sel) show(null); hiddenParts.add(x); showTip(null); applyVisibility(); shadowDirty = true; markDirty(); sideLists(); };
 
 // ---- dimensions: cabinet width above, height and depth on the side (CV's cabinet sizes) ----
 function dimLabel(text){
@@ -2956,10 +3036,10 @@ function loadPdfjs(){
 }
 async function openPdf(d){
   const lib = await loadPdfjs();
-  if (d.f) return lib.getDocument({url: d.f}).promise;
+  if (d.f) return lib.getDocument({url: d.f, isEvalSupported: false}).promise;
   const r = await api({pf: 'doc.get', id: d.id}, 120000); if (!r.ok) throw new Error(r.error);
   const bin = atob(r.b64), bytes = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return lib.getDocument({data: bytes}).promise;
+  return lib.getDocument({data: bytes, isEvalSupported: false}).promise;
 }
 // ---- reading CV's assembly sheets: one page per cabinet, "Assembly #24 - Std Base 2 Door", then its lists
 // (Doors, Parts Within Cabinet, Drawers, Handles, Hinges, Hinges Plates, Hardware...). Lines are rebuilt from
@@ -3817,9 +3897,13 @@ function tunePanel(){
 if (SOFTWARE_GL && !navigator.webdriver) setTimeout(() => scanToast('3D is running without the graphics card on this PC - see "SLOW ON THE SHOP PC" in the Part Finder README'), 1500);
 try { quality(); } catch (e){ console.log('quality check failed', e); }
 forceFrame = true;
+let pulseSel = null, pulseT0 = 0;
 (function loop(t){
-  if (sel) for (const m of sel.meshes) m.material.emissiveIntensity = still ? .35 : .2 + .25 * (1 + Math.sin((t || 0) / 300)) / 2;
-  if (sel && !still) forceFrame = true;           // the scanned part's pulse keeps drawing
+  if (sel !== pulseSel){ pulseSel = sel; pulseT0 = t || 0; }
+  const pulsing = sel && !still && (t || 0) - pulseT0 < 4000;      // (pulse 4 s, then a steady glow: no drawing all day)
+  if (sel) for (const m of sel.meshes) m.material.emissiveIntensity = pulsing ? .2 + .25 * (1 + Math.sin((t || 0) / 300)) / 2 : .35;
+  if (pulsing) forceFrame = true;
+  else if (sel && pulseT0 >= 0){ pulseT0 = -1e12; forceFrame = true; }   // (one more frame at the steady glow)
   moveStep(); controls.update(); wallStep();
   if (shadowDirty || ex !== exTarget || movers.some(m => m.moved)){ renderer.shadowMap.needsUpdate = true; shadowDirty = false; }
   batchStep(t || 0); render(t || 0); requestAnimationFrame(loop);
