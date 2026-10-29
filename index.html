@@ -2044,9 +2044,10 @@ const RECUT_TOUCH = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || !ma
 const RECUT_JOBNO = ((JOB.job || '').match(/(?:^|[^A-Za-z0-9])(J\d{3,})(?!\d)/i) || [])[1];
 const NOT_CNC = /stone|quartz|marble|caesar|dekton|granite|porcelain|neolith|laminam|silestone|terrazzo|travertine/i;
 const cutSize = v => typeof v === 'number' && Number.isFinite(v) && v > 0;
+const RECUT_ON = false;                     // (Re-cut link switched off until Mason is ready - set true to bring it back)
 function canRecut(x){
   const p = x && x.p;
-  return !!(p && (parts.includes(x) || x.unmatched) && !isTop(x) && p.k !== 'hw' && p.id !== undefined && p.id !== null && String(p.id).trim() !== ''
+  return !!(RECUT_ON && p && (parts.includes(x) || x.unmatched) && !isTop(x) && p.k !== 'hw' && p.id !== undefined && p.id !== null && String(p.id).trim() !== ''
             && cutSize(p.L) && cutSize(p.W) && !NOT_CNC.test(p.material || ''));
 }
 function recutUrl(p){
