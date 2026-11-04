@@ -3,7 +3,7 @@
 <style>*{box-sizing:border-box}body{margin:0}[hidden]{display:none!important}</style>
 <title>Part Finder</title>
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#000000">
-<link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png"><meta name="mobile-web-app-capable" content="yes">
+<link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="mobile-web-app-capable" content="yes">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
@@ -385,45 +385,287 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
 .srow output{grid-column:2;font:500 12px var(--mono);color:var(--muted);margin-top:-6px}
 .srow input[type=range]{width:100%;accent-color:var(--hi)}
 /* phones: header in two short rows, toolbar one scrolling row (Back stays in view), lists under the 3D */
-@media (max-width:640px){
-  .strip{flex-wrap:wrap;padding:6px 10px;gap:6px 8px;font-size:12px}
-  .strip > span:first-child{flex:1 1 0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .strip .right{flex:1 1 100%;order:3;justify-content:space-between;gap:6px}
-  .strip #count{display:none}
-  .roomnav{order:2;flex:1 1 100%;justify-content:center;font-size:14px}
-  .brandlogo{height:22px;width:22px;margin-right:4px}
-  .scanbtn{padding:6px 12px;min-height:32px}
-  .docbtns{overflow-x:auto;flex:1;margin:0}
-  .docbtns button{padding:6px 8px;font-size:11px;min-height:32px;white-space:nowrap}
-  .views{flex-wrap:nowrap;overflow-x:auto;left:0;right:0;top:6px;padding:0 6px;gap:6px;scrollbar-width:none;align-items:flex-start}
-  .views::-webkit-scrollbar{display:none}
-  .vg{flex:none;padding:3px;gap:3px}
-  .views button{font-size:12px;padding:6px 9px;min-height:34px;white-space:nowrap}
-  .vg.vright{position:sticky;right:0;margin-left:auto;padding-left:6px}
-  .vback{padding:7px 12px!important}
-  .velev span{min-width:64px;font-size:12px}
-  .vcap{display:none}
-  #work{flex-direction:column}
-  #work #stage{order:1;flex:1 1 55%;min-height:40vh}
-  .sidelist,.sidelist.left{order:2;width:100%!important;flex:0 1 auto;max-height:42vh;border:0;border-top:2px solid var(--cyan);padding:6px 8px}
-  .sidelist table{font-size:12px}
-  .sidelist th,.sidelist td{padding:5px 3px}
-  .sidelist td.sz{font-size:11px}
-  .slopen,.slopen.left{top:auto;bottom:8px;right:8px;left:auto}
-  .tip{left:8px;right:8px;bottom:8px;padding:8px 10px}
-  .tip .name{font-size:16px}
-  .tip .where,.tip .specs{font-size:12px}
-  .tip .tag span{font-size:16px}
-  .card{padding:8px 44px 10px 10px}
-  .card .name{font-size:18px}
+
+</style>
+<style id="deepwater">
+/* ===== Deep Water theme (trial) — glass layer over the dark theme; no logic changes ===== */
+:root[data-theme="dark"]{
+  --brand:#000406; --mid:#0094c4; --cyan:#00A8D8; --pale:#03141b;
+  --bg:#000204; --stage:#02090e; --card:#030d12; --fg:#eef6f9; --muted:#7f9aa8; --line:#0f2b36;
+  --hi:#00A8D8; --hi-ink:#00141b; --panel:#3a3936; --edge:#9fc3d2; --ghost:#2d4f5c;
+  --glass:rgba(3,14,20,.78); --glass-line:rgba(120,200,230,.16); --glass-hi:rgba(255,255,255,.08);
+  --glow:0 0 0 1px rgba(0,168,216,.18), 0 16px 44px rgba(0,0,0,.75), inset 0 1px 0 var(--glass-hi);
+}
+:root[data-theme="dark"] body{background:radial-gradient(1000px 650px at 78% 25%, rgba(0,168,216,.09), transparent 60%),radial-gradient(700px 500px at 8% 100%, rgba(0,120,168,.07), transparent 60%),linear-gradient(165deg,#030b10 0%,#010507 55%,#000000 100%)}
+:root[data-theme="dark"] #stage{background:radial-gradient(900px 600px at 55% 45%, #061820, #000304 75%)}
+/* top strip → floating glass bar */
+:root[data-theme="dark"] .strip{background:var(--glass);backdrop-filter:blur(26px) saturate(1.5);-webkit-backdrop-filter:blur(26px) saturate(1.5);border-bottom:1px solid var(--glass-line);box-shadow:inset 0 1px 0 var(--glass-hi);color:#cfe9f5;letter-spacing:.1em}
+:root[data-theme="dark"] .scanbtn{background:linear-gradient(180deg,#5fd0f0,#00a8d8);color:#00141b;border:1px solid rgba(255,255,255,.35);box-shadow:0 6px 18px rgba(0,168,216,.35);border-radius:999px;font-weight:700}
+/* view buttons, sheets, tips → glass pills/cards */
+:root[data-theme="dark"] .views button{background:var(--glass);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid var(--glass-line);border-radius:999px;box-shadow:inset 0 1px 0 var(--glass-hi);min-height:44px;padding:8px 14px;font-weight:600}
+:root[data-theme="dark"] .docbtns button,:root[data-theme="dark"] .scanbtn,:root[data-theme="dark"] .slx,:root[data-theme="dark"] .sheethead button,:root[data-theme="dark"] .sheetbtns button,:root[data-theme="dark"] .tip .x,:root[data-theme="dark"] .card .cx,:root[data-theme="dark"] .mpanel button,:root[data-theme="dark"] .spanel button,:root[data-theme="dark"] .npanel button,:root[data-theme="dark"] .hidebar button,:root[data-theme="dark"] .roomnav a,:root[data-theme="dark"] .sidelist tr.hidrow button,:root[data-theme="dark"] .tacts button{min-height:44px}
+:root[data-theme="dark"] .slx,:root[data-theme="dark"] .roomnav a{height:44px;width:44px}
+:root[data-theme="dark"] .sidelist li button{user-select:none;-webkit-user-select:none}
+:root[data-theme="dark"] .sidelist tbody tr{user-select:none;-webkit-user-select:none}
+:root[data-theme="dark"] .views button[aria-pressed="true"]{background:linear-gradient(180deg,#8ff0ff,#00a8d8);border-color:rgba(255,255,255,.4);color:#00141b;box-shadow:0 8px 22px rgba(0,168,216,.4)}
+:root[data-theme="dark"] .sheet,:root[data-theme="dark"] .tip,:root[data-theme="dark"] .npanel,:root[data-theme="dark"] .docview,:root[data-theme="dark"] .hidebar,:root[data-theme="dark"] .tunebox,:root[data-theme="dark"] .perfbox{background:var(--glass);backdrop-filter:blur(28px) saturate(1.5);-webkit-backdrop-filter:blur(28px) saturate(1.5);border:1px solid var(--glass-line);border-radius:18px;box-shadow:var(--glow)}
+:root[data-theme="dark"] .sheethead{background:transparent}
+:root[data-theme="dark"] .sheethead button,:root[data-theme="dark"] .sheetbtns button,:root[data-theme="dark"] .vw button,:root[data-theme="dark"] .tip .x,:root[data-theme="dark"] .sbtn,:root[data-theme="dark"] .card .cx,:root[data-theme="dark"] .hidebar button{background:rgba(255,255,255,.07);border:1px solid var(--glass-line);border-radius:999px;box-shadow:inset 0 1px 0 var(--glass-hi);min-height:36px}
+:root[data-theme="dark"] .sheethead .sheettabs button[aria-selected="true"]{background:#cfe9f5;color:#00141b;border-color:#cfe9f5}
+:root[data-theme="dark"] .hidebar button.pri,:root[data-theme="dark"] .pbtn{background:linear-gradient(180deg,#0094c4,#004e70);border:1px solid rgba(255,255,255,.3);border-radius:999px;color:#fff;box-shadow:0 8px 20px rgba(0,78,112,.4)}
+/* bottom part card → glass label with glowing tag */
+:root[data-theme="dark"] .card{background:var(--glass);backdrop-filter:blur(26px) saturate(1.5);-webkit-backdrop-filter:blur(26px) saturate(1.5);border-top:1px solid var(--glass-line);box-shadow:inset 0 1px 0 var(--glass-hi)}
+:root[data-theme="dark"] .tag,:root[data-theme="dark"] .tip .tag{background:linear-gradient(180deg,#8ff0ff,#00a8d8);color:#00141b;border-radius:12px;box-shadow:0 8px 22px rgba(0,168,216,.4)}
+:root[data-theme="dark"] .card.empty .tag{background:rgba(255,255,255,.08);color:var(--muted);box-shadow:none}
+:root[data-theme="dark"] .specs{border-top:1px solid var(--glass-line)}
+:root[data-theme="dark"] .tip .note{background:rgba(0,168,216,.12);border-left-color:#8ff0ff}
+/* home / jobs list */
+:root[data-theme="dark"] .home h1{color:#eef6f9;letter-spacing:.02em}
+:root[data-theme="dark"] .hbar input,:root[data-theme="dark"] .hbar select,:root[data-theme="dark"] .nform textarea,:root[data-theme="dark"] .nrow input{background:rgba(255,255,255,.06);border:1px solid var(--glass-line);border-radius:999px;box-shadow:inset 0 1px 0 var(--glass-hi)}
+:root[data-theme="dark"] .nform textarea{border-radius:14px}
+:root[data-theme="dark"] .jcard{background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--glass-line);border-left:1px solid var(--glass-line);border-radius:18px;box-shadow:var(--glow)}
+:root[data-theme="dark"] .jcard:hover{border-color:rgba(143,240,255,.5);box-shadow:0 0 0 1px rgba(0,168,216,.5),0 18px 44px rgba(0,8,14,.6)}
+:root[data-theme="dark"] .jcard .no{background:linear-gradient(180deg,#0094c4,#004e70);border-radius:12px}
+:root[data-theme="dark"] .jcard.folder .no,:root[data-theme="dark"] .srow .no:not(.none){background:linear-gradient(180deg,#8ff0ff,#00a8d8);color:#00141b}
+:root[data-theme="dark"] .jcard .no.room,:root[data-theme="dark"] .jcard .rooms em{background:rgba(0,168,216,.12);border-color:rgba(0,168,216,.35);color:#8ff0ff}
+:root[data-theme="dark"] .fin,:root[data-theme="dark"] .vw,:root[data-theme="dark"] .tog{border-bottom-color:var(--glass-line)}
+:root[data-theme="dark"] .fin select{background:rgba(255,255,255,.06);border:1px solid var(--glass-line);border-radius:999px}
+:root[data-theme="dark"] .scantoast,:root[data-theme="dark"] .approx{background:var(--glass);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid var(--glass-line);border-radius:999px}
+/* kill the old hard borders where they poke through */
+:root[data-theme="dark"] .card .cx{border-radius:999px}
+</style>
+<style id="glasslayout">
+#vSnap{display:none!important}
+#vCab,#vJob{display:none!important}
+#vElName{display:inline-block;min-width:96px;text-align:center;font-weight:700}
+:root[data-theme="dark"] .card .cx{width:44px;height:44px}
+:root[data-theme="dark"] .sidelist li button{min-height:44px}
+/* ===== Deep Water layout (mockup A) — tablet/desktop ≥1100px: full-bleed stage, floating glass panels.
+   Below 1100px the original flow layout stays (sidelists in-flow, card docked), below 640px the phone rules stay. ===== */
+@media (min-width:641px){
+  :root{--rail-l:292px; --rail-r:352px; --top:88px; --dock:108px}
+  body{position:relative}
+  /* strip → floating pill */
+  .strip{position:absolute;left:16px;right:16px;top:14px;z-index:6;height:58px;border-radius:29px;border-bottom:0;padding:0 10px 0 10px;text-transform:none;letter-spacing:.02em;font-size:14px}
+  .strip > span:first-child{display:flex;align-items:center;gap:8px;min-width:0}
+  .strip b{font-size:16px}
+  .brandlogo{height:36px;width:36px;border-radius:12px;margin-right:6px}
+  .roomnav a{border-radius:999px;border-color:var(--glass-line);background:rgba(255,255,255,.06)}
+  .scanbtn{padding:9px 18px;min-height:42px}
+  .docbtns button{border-radius:999px}
+  /* stage fills everything; the strip floats over it */
+  #work{position:absolute;inset:0;display:block}
+  #work #stage{position:absolute;inset:0;width:auto}
+  /* cabinet list → floating glass panel, left */
+  .sidelist#cabList{position:absolute;left:16px;top:var(--top);bottom:var(--dock);width:260px;border:1px solid var(--glass-line);border-radius:22px;padding:14px 12px;background:var(--glass);backdrop-filter:blur(28px) saturate(1.5);-webkit-backdrop-filter:blur(28px) saturate(1.5);box-shadow:var(--glow);z-index:4}
+  /* parts (cut list) → floating glass panel, right, above the part card */
+  .sidelist.left#cutList{position:absolute;right:16px;top:var(--top);width:min(560px,44vw);max-height:calc(100% - var(--top) - var(--dock) - 12px);border:1px solid var(--glass-line);border-radius:22px;padding:14px 12px;background:var(--glass);backdrop-filter:blur(28px) saturate(1.5);-webkit-backdrop-filter:blur(28px) saturate(1.5);box-shadow:var(--glow);z-index:4}
+  #work:has(#cutList:not([hidden])) + .card{max-height:42%}
+  .slhead{background:transparent;top:-14px;padding-top:4px}
+  .slhead b{color:var(--muted);font-size:12px;letter-spacing:.16em;text-transform:uppercase}
+  .slx{border-radius:999px;background:rgba(255,255,255,.07);border-color:var(--glass-line)}
+  .slnote{color:var(--muted);font-size:12px;margin:0 0 8px}
+  .sidelist li button{border-radius:14px;padding:9px 10px;min-height:46px;background:transparent;font-size:15px}
+  .sidelist li button:hover{background:rgba(255,255,255,.06)}
+  .sidelist li button[aria-pressed="true"]{background:linear-gradient(180deg,#8ff0ff,#00a8d8);color:#00141b;border-color:transparent;box-shadow:0 8px 22px rgba(0,168,216,.35)}
+  .sidelist li button[aria-pressed="true"] b{color:#00212e}
+  .sidelist tr.mh td{background:rgba(0,168,216,.12);border-radius:8px}
+  .sidelist tbody tr:hover,.sidelist tbody tr.on{background:rgba(0,168,216,.14)}
+  /* part card → floating glass card, right */
+  .card{position:absolute;right:16px;bottom:var(--dock);width:320px;max-height:calc(100% - var(--top) - var(--dock));overflow:auto;z-index:4;border:1px solid var(--glass-line);border-radius:22px;padding:18px 48px 18px 18px;grid-template-columns:auto 1fr;gap:6px 14px;align-content:start;box-shadow:var(--glow)}
+  .card .name{font-size:26px}
+  .card .where{font-size:14px}
+  .card .cx{top:12px;right:12px}
+  .card .tag span{font-size:24px}
+  /* openers for the collapsed lists */
+  .slopen{top:var(--top);left:16px;right:auto;z-index:4;border-radius:999px;padding:10px 16px;min-height:44px;background:var(--glass);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-color:var(--glass-line);box-shadow:var(--glow)}
+  .slopen.left{left:auto;right:16px}
+  /* view toolbar → bottom dock between the two rails */
+  .views{top:auto;bottom:16px;left:var(--rail-l);right:var(--rail-r);justify-content:center;align-items:flex-end;gap:8px;z-index:5}
+  .vg{border-radius:999px;padding:5px;gap:4px;background:var(--glass);backdrop-filter:blur(26px) saturate(1.5);-webkit-backdrop-filter:blur(26px) saturate(1.5);border:1px solid var(--glass-line);box-shadow:var(--glow)}
+  .vg.vright{position:static;margin:0;background:none;border:0;box-shadow:none;padding:0}
+  :root[data-theme="dark"] .views button,.views button{border:0;background:transparent;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;min-height:44px;padding:8px 12px;font-size:14px;white-space:nowrap}
+  .views button[aria-pressed="true"]{box-shadow:0 6px 18px rgba(0,168,216,.4)}
+  .vback{border-radius:999px!important}
+  .vcap{padding-left:10px}
+  /* overlays that used to sit at the stage corners move inside the rails */
+  .tip{left:auto;right:16px;bottom:var(--dock);width:320px;max-width:none;max-height:calc(100% - var(--top) - var(--dock));overflow:auto;padding:16px 16px 14px;border-radius:22px;grid-template-columns:auto 1fr auto}
+  .tip .name{font-size:22px}
+  .tip .where{font-size:14px}
+  .tip .specs{font-size:13px}
+  .mpanel,.spanel{left:var(--rail-l);bottom:var(--dock)}
+  .sheet{left:auto;right:var(--rail-r);bottom:var(--dock);max-width:440px;max-height:calc(100% - var(--top) - var(--dock));z-index:6}
+  .npanel{right:var(--rail-r);top:var(--top);max-height:calc(100% - var(--top) - var(--dock))}
+  .hidebar{top:var(--top)}
+  .hint{left:var(--rail-l);right:var(--rail-r);text-align:center;top:calc(var(--top) + 2px);bottom:auto;z-index:1}
   .docview{top:0}
-  .dvbar select,.dvbar button{padding:6px 8px;font-size:12px;min-height:34px}
-  .npanel{top:50px;right:6px;width:calc(100% - 12px)}
-  .hint{display:none}
-  .card.empty{display:none}                   /* (the empty "scan a label" card: no room for it on a phone) */
+  /* home (job list) gets the same floating strip, so push its content down */
+  .home{padding-top:92px}
+}
+@media (min-width:641px) and (max-width:1099px){
+  :root{--rail-l:232px; --rail-r:292px; --top:84px; --dock:118px}
+  .strip{height:54px;font-size:13px;gap:10px}
+  .strip b{font-size:15px}
+  .docbtns button{padding:6px 10px;font-size:12px}
+  .sidelist#cabList{width:204px;padding:12px 8px}
+  .sidelist li button{font-size:14px;min-height:44px}
+  .sidelist.left#cutList{width:min(520px,56vw)}
+  .card{width:262px;padding:14px 44px 14px 14px}
+  .card .name{font-size:22px}
+  .tip{width:262px}
+  .views{left:var(--rail-l);right:var(--rail-r);gap:6px}
+  .views button{padding:8px 10px;font-size:13px;white-space:nowrap}
+  .vcap{display:none}
+  .sheet,.npanel{max-width:360px}
+  #work:has(#cabList[hidden]) .views{left:16px}
+  #work:has(#cabList[hidden]) .tip,#work:has(#cabList[hidden]) .mpanel,#work:has(#cabList[hidden]) .spanel{left:16px}
+  .strip > span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 }
 </style>
+<style id="phone">
+@media (max-width:640px){
+  :root{
+    --ph-top:calc(52px + env(safe-area-inset-top,0px));
+    --ph-bar:64px;
+    --ph-glass:var(--glass,rgba(3,14,20,.8));
+    --ph-line:var(--glass-line,rgba(120,200,230,.16));
+    --ph-hi:var(--glass-hi,rgba(255,255,255,.08));
+    --ph-glow:var(--glow,0 16px 44px rgba(0,0,0,.7));
+    --ph-r:20px;
+  }
+  body{font-size:15px}
 
+  /* top bar: one row (back · job · scan); rooms / PDFs wrap under it only when present */
+  .strip{flex-wrap:wrap;align-items:center;gap:4px 8px;min-height:var(--ph-top);padding:calc(6px + env(safe-area-inset-top,0px)) 12px 6px;font-size:13px;letter-spacing:.04em}
+  .strip > span:first-child{order:1;flex:1 1 80px;min-width:0;display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:44px}
+  .strip > span:first-child a{display:inline-flex;align-items:center;min-height:44px;padding:0 4px 0 0;flex:none}
+  .strip b{font-size:15px;letter-spacing:.02em}
+  .brandlogo{height:26px;width:26px;margin-right:4px}
+  .strip .right{order:2;flex:0 1 auto;min-width:0;display:flex;align-items:center;gap:6px}
+  .strip #count{display:none}
+  .roomnav{order:3;flex:1 1 100%;justify-content:center;gap:8px;font-size:15px;min-height:44px}
+  .roomnav a{width:44px;height:44px;border-radius:999px;border:1px solid var(--ph-line);background:rgba(255,255,255,.05)}
+  .roomnav span{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .scanbtn{flex:none;min-height:44px;padding:0 18px;font-size:14px;letter-spacing:.04em}
+  .docbtns{flex:0 1 auto;min-width:0;margin:0;gap:6px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .docbtns::-webkit-scrollbar{display:none}
+  .docbtns button{flex:none;min-height:44px;padding:0 12px;font-size:12px;border-radius:999px;white-space:nowrap}
+  .strip:has(.docbtns:not([hidden])) .right{flex:1 1 100%;order:4;justify-content:space-between}
+
+  /* stage: full bleed; lists and panels float over it */
+  #work{flex-direction:row;position:relative}
+  #work #stage{flex:1 1 auto;min-height:0;min-width:0;order:0}
+  .hint{display:none}
+
+  .slopen,.slopen.left{top:10px;bottom:auto;right:10px;left:auto;min-height:44px;padding:0 16px;font-size:14px;border-radius:999px;background:var(--ph-glass);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid var(--ph-line);box-shadow:inset 0 1px 0 var(--ph-hi),0 6px 18px rgba(0,0,0,.45)}
+  .slopen.left{right:auto;left:10px}
+
+  /* view toolbar: one scrolling pill row docked above the part sheet */
+  .views{top:auto;left:0;right:0;bottom:0;height:var(--ph-bar);display:flex;flex-wrap:nowrap;justify-content:flex-start;align-items:center;gap:8px;padding:8px 12px 12px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;touch-action:pan-x;z-index:2;scroll-padding:0 12px}
+  .views::-webkit-scrollbar{display:none}
+  .vg{flex:none;gap:4px;padding:3px;border-radius:999px;background:var(--ph-glass);border:1px solid var(--ph-line);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+  .views button{flex:none;min-height:44px;padding:0 14px;font-size:14px;white-space:nowrap;border-radius:999px}
+  .views button:active{transform:scale(.96)}
+  .vcap{display:none}
+  .velev span{min-width:72px;font-size:14px}
+  .velev button{min-width:44px}
+  .vg.vright{position:sticky;right:-12px;margin-left:auto;padding:3px 12px 3px 22px;border:0;border-radius:0;backdrop-filter:none;-webkit-backdrop-filter:none;background:linear-gradient(90deg,rgba(0,2,4,0) 0%,rgba(0,2,4,.85) 45%,rgba(0,2,4,.95) 100%);pointer-events:none}
+  .vg.vright button{pointer-events:auto}
+  .vback{min-height:44px!important;padding:0 18px!important;font-size:15px!important}
+
+  /* panels inside the stage: above the pill row, full width */
+  .tip{left:8px;right:8px;bottom:calc(var(--ph-bar) + 4px);max-width:none;padding:12px 14px;z-index:6;gap:2px 12px}
+  .tip .name{font-size:19px}
+  .tip .where{font-size:15px}
+  .tip .specs{font-size:14px}
+  .tip .tag span{font-size:20px}
+  .tip .x{min-height:44px;padding:0 14px}
+  .sheet{left:8px;right:8px;bottom:calc(var(--ph-bar) + 4px);max-width:none;max-height:60%;z-index:3}
+  .sheethead{top:-10px}
+  .sheethead button,.sheetbtns button{min-height:44px;padding:0 14px;font-size:14px}
+  .mpanel,.spanel{left:8px;right:8px;bottom:calc(var(--ph-bar) + 4px);width:auto;z-index:3;font-size:15px;border-radius:18px;background:var(--ph-glass);backdrop-filter:blur(24px) saturate(1.4);-webkit-backdrop-filter:blur(24px) saturate(1.4);border:1px solid var(--ph-line);box-shadow:var(--ph-glow)}
+  .mpanel button,.spanel button{min-height:44px;padding:0 14px;font-size:14px;border-radius:999px}
+  .mtotal{font-size:30px}
+  .srow{grid-template-columns:84px 1fr auto;font-size:14px}
+  .srow input[type=range]{height:44px}
+  .npanel{top:8px;right:8px;left:8px;width:auto;max-height:calc(100% - var(--ph-bar) - 16px);z-index:4;font-size:15px}
+  .npanel button:not(.pbtn):not(.ngo){min-height:44px;padding:0 14px;font-size:14px;border-radius:999px}
+  .npanel .nform textarea,.npanel .nrow input,.nform textarea,.nrow input{font-size:16px;min-height:44px}
+  .pbtn{min-height:44px}
+  .fxkinds span{min-height:40px;display:inline-flex;align-items:center;font-size:14px}
+  .hidebar{top:10px;max-width:calc(100% - 16px);font-size:15px}
+  .hidebar button{min-height:44px;padding:0 14px}
+  .scantoast{top:calc(10px + env(safe-area-inset-top,0px))}
+
+  /* cabinet / parts lists: full-width bottom sheets over the stage */
+  .sidelist,.sidelist.left{position:absolute;left:0;right:0;bottom:var(--ph-bar);top:auto;order:0;width:auto;max-height:55%;flex:none;z-index:5;overflow:auto;padding:0 12px calc(12px + env(safe-area-inset-bottom,0px));font-size:15px;border:1px solid var(--ph-line);border-bottom:0;border-radius:var(--ph-r) var(--ph-r) 0 0;background:var(--ph-glass);backdrop-filter:blur(26px) saturate(1.5);-webkit-backdrop-filter:blur(26px) saturate(1.5);box-shadow:var(--ph-glow);overscroll-behavior:contain}
+  .slhead{top:0;padding:18px 0 10px;margin:0 -12px 6px;padding-left:12px;padding-right:12px;background:var(--ph-glass);border-bottom:1px solid var(--ph-line);z-index:1}
+  .slhead::after{content:"";position:absolute;left:50%;top:7px;width:40px;height:5px;border-radius:3px;background:rgba(255,255,255,.28);transform:translateX(-50%)}
+  .slhead b{font-size:17px}
+  .slx{width:44px;height:44px;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid var(--ph-line);font-size:22px}
+  .slnote{font-size:13px;margin:0 0 8px}
+  .sidelist ol{gap:4px}
+  .sidelist li button{min-height:48px;padding:8px 10px;font-size:15px;border-radius:12px;grid-template-columns:52px 1fr}
+  .sidelist li button b{font-size:16px}
+  .sidelist h4{font-size:12px}
+  .sidelist table{font-size:14px}
+  .sidelist th{font-size:11px;padding:6px 4px}
+  .sidelist td{padding:10px 4px;font-size:14px}
+  .sidelist td.sz,.sidelist td.bd,.sidelist td.nt{font-size:13px}
+  .sidelist td:first-child{font-size:15px}
+  .sidelist tbody tr{min-height:44px}
+  .sidelist tr.hidrow button,.tacts button{min-height:44px;padding:0 14px;border-radius:999px}
+
+  /* part card: bottom sheet, grab handle, big tag, mono dims */
+  .card{position:relative;z-index:3;flex:none;max-height:45vh;max-height:45dvh;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:18px 16px calc(16px + env(safe-area-inset-bottom,0px));grid-template-columns:auto 1fr;gap:4px 14px;align-content:start;border-radius:var(--ph-r) var(--ph-r) 0 0;border:1px solid var(--ph-line);border-bottom:0;box-shadow:var(--ph-glow)}
+  .card::before{content:"";grid-column:1/-1;justify-self:center;width:40px;height:5px;margin:-10px 0 4px;border-radius:3px;background:rgba(255,255,255,.28)}
+  .card .cx{top:12px;right:12px;width:44px;height:44px;font-size:22px;background:rgba(255,255,255,.07);border:1px solid var(--ph-line);z-index:1}
+  .card .tag{min-width:64px;padding:8px 10px;font-size:13px}
+  .card .tag span{font-size:28px;letter-spacing:-.01em}
+  .card .name{font-size:22px;line-height:1.1;padding-right:48px;overflow-wrap:anywhere}
+  .card .where{font-size:15px;line-height:1.3;padding-right:48px}
+  .card .specs{margin-top:10px;padding-top:12px;gap:8px 20px;font-size:15px;line-height:1.35}
+  .card .specs b{font-size:16px}
+  .card .recut{margin-top:10px;gap:8px 10px}
+  .card .recut .rcgo,.card .recut .rccopy{min-height:44px;padding:0 16px;font-size:14px;border-radius:999px}
+  .card .recut .rcnote{font-size:13px}
+  .card.empty{display:grid;padding-top:16px}
+  .card.empty .name{font-size:18px}
+  .card.empty .where{font-size:14px}
+  .card.empty .tag span{font-size:22px}
+
+  /* PDF viewer */
+  .docview{top:0;border-radius:0}
+  .dvbar{padding:calc(8px + env(safe-area-inset-top,0px)) 10px 8px}
+  .dvbar select,.dvbar button{min-height:44px;padding:0 12px;font-size:14px}
+  .dv3d{min-height:44px}
+
+  /* glass look: outranks the deepwater rules (same :root[data-theme="dark"] prefix, later in source) */
+  :root[data-theme="dark"] .strip{border-bottom:1px solid var(--ph-line);box-shadow:inset 0 1px 0 var(--ph-hi),0 8px 24px rgba(0,0,0,.45);letter-spacing:.04em;text-transform:none}
+  :root[data-theme="dark"] .views button{min-height:44px;padding:0 14px;background:transparent;border-color:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:none}
+  :root[data-theme="dark"] .views button[aria-pressed="true"]{border-color:rgba(255,255,255,.4);background:linear-gradient(180deg,#8ff0ff,#00a8d8);color:#00141b}
+  :root[data-theme="dark"] .vg.vright{background:linear-gradient(90deg,rgba(0,2,4,0) 0%,rgba(0,2,4,.85) 45%,rgba(0,2,4,.95) 100%)}
+  :root[data-theme="dark"] .card{border-top:1px solid var(--ph-line);border-left:1px solid var(--ph-line);border-right:1px solid var(--ph-line);box-shadow:var(--ph-glow),inset 0 1px 0 var(--ph-hi)}
+  :root[data-theme="dark"] .card .cx{min-height:44px}
+  :root[data-theme="dark"] .tag{border-radius:14px}
+  :root[data-theme="dark"] .tip,:root[data-theme="dark"] .sheet,:root[data-theme="dark"] .npanel{border-radius:18px}
+  :root[data-theme="dark"] .sheethead button,:root[data-theme="dark"] .sheetbtns button,:root[data-theme="dark"] .tip .x,:root[data-theme="dark"] .hidebar button{min-height:44px}
+
+  /* press feedback + sheet entry; motion respects the OS setting */
+  .views button,.scanbtn,.slx,.slopen,.card .cx,.sidelist li button,.mpanel button,.spanel button,.npanel button,.sheethead button,.tip .x,.docbtns button,.roomnav a{transition:transform .12s cubic-bezier(0,0,.2,1),background-color .12s}
+  .scanbtn:active,.slx:active,.slopen:active,.card .cx:active,.sidelist li button:active,.docbtns button:active,.roomnav a:active{transform:scale(.96)}
+  @media (prefers-reduced-motion:no-preference){
+    .sidelist,.tip,.sheet,.mpanel,.spanel,.npanel,.card{transition:transform .24s cubic-bezier(0,0,.2,1),opacity .24s cubic-bezier(0,0,.2,1)}
+    @starting-style{
+      .sidelist,.tip,.sheet,.mpanel,.spanel,.npanel,.card{transform:translateY(18px);opacity:0}
+    }
+  }
+  @media (prefers-reduced-motion:reduce){
+    .views button,.scanbtn,.slx,.slopen,.card .cx,.sidelist li button,.docbtns button,.roomnav a,.sidelist,.tip,.sheet,.mpanel,.spanel,.npanel,.card{transition:none}
+    .views button:active,.scanbtn:active,.slx:active,.slopen:active,.card .cx:active,.sidelist li button:active,.docbtns button:active,.roomnav a:active{transform:none;filter:brightness(1.25)}
+  }
+}
+</style>
 </head><body>
 <div class="strip"><span><a href="./" id="backLink" title="All jobs"><img class="brandlogo" src="logo-mark.png" alt="">&lsaquo; Jobs</a> · <b id="job">–</b><span id="room"></span></span><nav class="roomnav" id="roomNav" hidden aria-label="Rooms in this job"><a id="roomPrev" aria-label="Previous room">&lsaquo;</a><span id="roomName"></span><a id="roomNext" aria-label="Next room">&rsaquo;</a></nav><span class="right"><span class="docbtns" id="docBtns" hidden role="group" aria-label="Job PDFs"><button type="button" data-doc="shop" aria-pressed="false">Shop drawings</button><button type="button" data-doc="assembly" aria-pressed="false">Assembly</button><button type="button" data-doc="hardware" aria-pressed="false">Hardware</button></span><button type="button" class="scanbtn" data-scan>Scan</button><span id="count"></span></span></div>
 <main class="home" id="home" hidden>
@@ -464,8 +706,8 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
       <button id="vSolid" aria-pressed="true" title="Solid, or see-through outlines">Solid</button>
       <button id="vSee" aria-pressed="false" hidden title="See-through view">See-through</button>
     </div>
-    <div class="vg velev" id="vElev" role="group" aria-label="Wall elevations" hidden>
-      <i class="vcap">Walls</i><button id="vElPrev" aria-label="Previous wall or saved view">&lsaquo;</button><span id="vElName">3D</span><button id="vElNext" aria-label="Next wall or saved view">&rsaquo;</button>
+    <div class="vg velev" id="vElev" role="group" aria-label="Views: 3D, square-on, walls and saved views" hidden>
+      <i class="vcap">View</i><button id="vElPrev" aria-label="Previous wall or saved view">&lsaquo;</button><span id="vElName">3D</span><button id="vElNext" aria-label="Next wall or saved view">&rsaquo;</button>
     </div>
     <div class="vg vsnap" id="vSnap" role="group" aria-label="Look square-on from"><i class="vcap">Look</i><button data-snap="top" aria-pressed="false" title="From above">Top</button><button data-snap="front" aria-pressed="false" title="Square-on to the front">Front</button><button data-snap="back" aria-pressed="false" title="From behind">Back</button><button data-snap="left" aria-pressed="false" title="From the left end">Left</button><button data-snap="right" aria-pressed="false" title="From the right end">Right</button><button data-snap="3d" title="Back to the 3D view">3D</button></div>
     <div class="vg" role="group" aria-label="Saved views"><button id="vSave" title="Save this view - the room, a cabinet or a part on its own - to come back to it with the arrows">&#9733; Save view</button></div>
@@ -1310,6 +1552,11 @@ function outline(g){
   }
   const eg = new THREE.BufferGeometry(); eg.setAttribute('position', new THREE.Float32BufferAttribute(out, 3)); return eg;
 }
+// v58: Deep Water refresh. Three CSS layers (deepwater / glasslayout / phone) restyle the viewer: dark glass panels,
+// full-bleed 3D with floating cab list, parts list, part card and view dock on tablets and desktops (641px up);
+// app-style bottom sheets on phones. The Look buttons and the Cabinet / Whole job pills are hidden - the View
+// stepper (‹ 3D ›) now cycles 3D, Top, Front, Back, Left, Right, walls and saved views. Soft shading (SSAO) is off
+// unless Settings > Quality turns it on for the device. Nothing else in the JS changed.
 // v57: cut-outs, routes and holes drawn inside a board's faces are machining: black lines ("so they are clearly
 // visible", Mason, J1121 Bathroom 2 Top 226) whenever the board is shown solid in an isolated cabinet, on its own,
 // or picked - instead of the board's outline colour (cyan on a picked part). Lifted 0.4 mm off the face so they
@@ -3907,7 +4154,7 @@ window.__batchInfo = () => { const t0 = performance.now(), ok = batchValid(); re
 // The soft shading (ambient occlusion) is either on for every frame or off - never switched on and off as the
 // view moves and stops (that read as flashing). It goes off for good when this computer can't keep 30 frames a
 // second with it on, and Show / hide has a switch for it.
-let frameSig = '', aoFade = 1, lastT = 0, aoOn = true;
+let frameSig = '', aoFade = 1, lastT = 0, aoOn = !!(TUNE && TUNE.ao === true);   // v58: off unless Settings › Quality turns it on for this device (blurry on desktop)
 const gaps = [];
 for (const ev of ['pointerdown', 'pointermove', 'pointerup', 'wheel', 'keydown', 'input', 'click', 'touchstart', 'touchmove'])
   addEventListener(ev, () => markDirty(250), {passive: true, capture: true});
@@ -4034,6 +4281,35 @@ let pulseSel = null, pulseT0 = 0;
   moveStep(); controls.update(); wallStep();
   if (shadowDirty || ex !== exTarget || movers.some(m => m.moved)){ renderer.shadowMap.needsUpdate = true; shadowDirty = false; }
   batchStep(t || 0); render(t || 0); requestAnimationFrame(loop);
+})();
+// ===== Unified view stepper (trial): the Walls ‹ 3D › control now cycles 3D → Top → Front → Back → Left → Right → walls → saved views.
+// The old "Look" buttons stay in the DOM (hidden) so the existing snap logic keeps working. Additive; no original function is edited.
+(function(){
+  const SNAPS = [['top','Top'],['front','Front'],['back','Back'],['left','Left'],['right','Right']];
+  let pos = -1;                                   // -1 = 3D, 0..4 = snaps, 5+ = walls then saved views (goElev index = pos - 5)
+  const total = () => 5 + elevs.length + savedViews.length;
+  const name = $('vElName');
+  function label(){
+    if (pos === -1) name.textContent = '3D';
+    else if (pos < 5) name.textContent = SNAPS[pos][1];
+    else elevLabel();
+  }
+  function go(p){
+    const t = total(); if (p >= t) p = -1; if (p < -1) p = t - 1;
+    pos = p;
+    if (p === -1){ if (elevI >= 0) goElev(-1); else snapView('3d'); label(); return; }
+    if (p < 5){ snapView(SNAPS[p][0]); label(); return; }
+    goElev(p - 5);
+  }
+  elevVis = function(){ $('vElev').hidden = false; };
+  elevVis();
+  $('vElPrev').onclick = () => go(pos - 1);
+  $('vElNext').onclick = () => go(pos + 1);
+  $('vElPrev').setAttribute('aria-label', 'Previous view'); $('vElNext').setAttribute('aria-label', 'Next view');
+  controls.addEventListener('start', () => { if (pos >= 0 && pos < 5 && !snapOn){ pos = -1; label(); } });
+  new MutationObserver(() => { const t = name.textContent; if (t === '3D' && pos >= 0 && pos < 5 && snapOn) name.textContent = SNAPS[pos][1]; if (t.startsWith('Wall')||t.startsWith('★')) pos = 5 + elevI; })
+    .observe(name, {childList: true, characterData: true, subtree: true});
+  label();
 })();
 }
 </script>
