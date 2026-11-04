@@ -136,7 +136,24 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
 .sbtn{font:600 13px var(--display);padding:7px 12px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer;text-decoration:none;white-space:nowrap}
 .sbtn:hover{border-color:var(--mid);color:var(--mid)}
 .fnotes{margin-top:22px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
-.fnotes h2,.sets h2{font-size:18px;margin:0 0 10px;color:var(--cyan)}
+.fnotes h2,.sets h2,.refr h2{font-size:18px;margin:0 0 10px;color:var(--cyan)}
+.refr{margin-top:22px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.refr .rhelp{margin:0 0 10px;color:var(--muted);font-size:14px;line-height:1.4}
+.rlist{list-style:none;margin:0;padding:0}
+.rrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0;border-top:1px solid var(--line)}
+.rrow:first-child{border-top:0}
+.rrow .rnm{font-weight:700;min-width:120px}
+.rrow .rst{flex:1 1 200px;color:var(--muted);font-size:14px}
+.rrow .rst.chg{color:#b25e00;font-weight:600}
+.rrow .rst.req{color:var(--cyan);font-weight:600}
+.rrow button{font:600 14px var(--display);border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:999px;padding:6px 14px;min-height:40px;cursor:pointer}
+.rrow button.pri{background:var(--cyan);border-color:var(--cyan);color:#fff}
+.nbadge.chg{top:auto;bottom:12px;background:#ffe2bf;color:#6b3a00}
+.dnew{margin:0 0 16px;display:grid;gap:8px}
+.dnew .dn{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--card);border:1px solid var(--cyan);border-left:6px solid var(--cyan);border-radius:10px;padding:10px 12px}
+.dnew .dn span{flex:1 1 240px;font-size:15px}
+.dnew .dn button{font:600 14px var(--display);border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:999px;padding:6px 14px;min-height:40px;cursor:pointer}
+.dnew .dn button.pri{background:var(--cyan);border-color:var(--cyan);color:#fff}
 .fnotes h2 small,.sets h2 small{font-size:13px;color:var(--muted);font-weight:500;margin-left:6px}
 .nform textarea{width:100%;font:500 15px var(--display);padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);resize:vertical}
 .nrow{display:flex;gap:8px;margin:8px 0 12px}
@@ -199,6 +216,8 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
 .hidebar span{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .hidebar button{flex:none;font:600 14px var(--display);border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:999px;padding:6px 12px;min-height:36px;cursor:pointer}
 .hidebar button.pri{background:var(--cyan);border-color:var(--cyan);color:#fff}
+.looksbar{white-space:normal;border-radius:18px}
+.looksbar span{flex:1 1 auto;min-width:150px}
 #room:not(:empty)::before{content:' \00B7  '}
 .approx{color:#E8A33D;font-weight:600}
 .scantoast{position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:50;background:var(--fg);color:var(--bg);font:600 15px var(--display);padding:10px 16px;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:calc(100% - 32px)}
@@ -415,8 +434,10 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
       <input id="q" type="search" placeholder="Search job number, name or room" aria-label="Search jobs" autocomplete="off">
       <select id="hSort" aria-label="Sort jobs"><option value="recent">Latest first</option><option value="number">Job number</option><option value="name">Name A–Z</option></select>
     </div>
+    <section class="dnew" id="daeNew" hidden aria-label="New 3D models"></section>
     <ul class="grid" id="jobs"></ul>
     <p class="empty" id="jobsEmpty" hidden></p>
+    <section class="refr" id="fRefresh" hidden aria-label="Updates to this job"></section>
     <section class="fnotes" id="fNotes" hidden aria-label="Job notes">
       <h2>Notes <small id="fNotesN"></small></h2>
       <form class="nform" id="fNoteForm">
@@ -714,7 +735,7 @@ let DASH = {settings: EMPTY_SET(), counts: {}};
 try { const c = JSON.parse(localStorage.getItem('pf-dash') || 'null'); if (c && c.settings) DASH = c; } catch (_) {}
 async function loadDash(){
   const r = await api({pf: 'dash'}, 9000);
-  if (r.ok){ DASH = {settings: Object.assign(EMPTY_SET(), r.settings), counts: r.counts || {}}; try { localStorage.setItem('pf-dash', JSON.stringify(DASH)); } catch (_) {} }
+  if (r.ok){ DASH = {settings: Object.assign(EMPTY_SET(), r.settings), counts: r.counts || {}, refresh: r.refresh || {req: {}, changed: {}}}; try { localStorage.setItem('pf-dash', JSON.stringify(DASH)); } catch (_) {} }
   return r.ok;
 }
 const SET = () => DASH.settings;
@@ -790,9 +811,10 @@ async function home(focus){
   draw();
   if (route !== 'settings' && await loadDash()) draw();      // (drawn from the last copy first, so it opens instantly)
 }
-function show_(ids){ for (const id of ['crumbs', 'hBar', 'jobs', 'jobsEmpty', 'fNotes', 'sets']) $(id).hidden = !ids.includes(id); }
+function show_(ids){ for (const id of ['crumbs', 'hBar', 'daeNew', 'jobs', 'jobsEmpty', 'fRefresh', 'fNotes', 'sets']) $(id).hidden = !ids.includes(id); }
 function drawAll(jobs){
   show_(['hBar', 'jobs', 'jobsEmpty']);
+  daeBanner(jobs);
   $('hTitle').textContent = 'Jobs';
   const q = $('q').value.trim().toLowerCase(), sort = $('hSort').value;
   let list = [...buildFolders(jobs).values()];
@@ -811,7 +833,8 @@ function drawAll(jobs){
       '<span class="nm">' + esc(folderTitle(f)) + '</span>' +
       (rooms.length ? '<span class="rooms">' + rooms.slice(0, 4).map(r => '<em>' + esc(r) + '</em>').join('') + (rooms.length > 4 ? '<em>+' + (rooms.length - 4) + '</em>' : '') + '</span>' : '') +
       '<span class="mt">' + [many ? plural(f.entries.length, 'room') : '', cabs ? cabs + ' cabs' : '', partsN ? partsN + ' parts' : '', niceDate(f.updated)].filter(Boolean).join(' · ') + '</span>' +
-      (n ? '<span class="nbadge">' + plural(n, 'note') + '</span>' : '') + '</a></li>';
+      (n ? '<span class="nbadge">' + plural(n, 'note') + '</span>' : '') +
+      (f.entries.some(e => refreshOf().changed[e.key] && !refreshOf().req[e.key]) ? '<span class="nbadge chg">Nests changed</span>' : '') + '</a></li>';
   }).join('');
   $('jobsEmpty').hidden = list.length > 0;
   $('jobsEmpty').textContent = !jobs.length ? 'No jobs uploaded yet. Jobs appear here after the sync publishes them.' : 'No job matches "' + $('q').value + '".';
@@ -820,7 +843,7 @@ function drawFolder(jobs, fid){
   const f = buildFolders(jobs).get(fid) || buildFolders(jobs, null, true).get(fid);
   if (!f){ show_(['crumbs', 'jobsEmpty']); $('crumbs').innerHTML = '<a href="./">All jobs</a>'; $('hTitle').textContent = 'Job not found'; $('hCount').textContent = '';
     $('jobsEmpty').hidden = false; $('jobsEmpty').textContent = 'This job is not on the list (it may have been archived or renamed).'; return; }
-  show_(['crumbs', 'jobs', 'fNotes']);
+  show_(['crumbs', 'jobs', 'fRefresh', 'fNotes']);
   document.title = folderTitle(f) + ' · Part Finder';
   $('crumbs').innerHTML = '<a href="./">All jobs</a><span aria-hidden="true">›</span><b>' + esc(f.number || folderTitle(f)) + '</b>';
   $('hTitle').textContent = folderTitle(f); $('hCount').textContent = plural(f.entries.length, 'room');
@@ -828,7 +851,61 @@ function drawFolder(jobs, fid){
   $('jobs').innerHTML = f.entries.map(e => '<li><a class="jcard" href="?j=' + encodeURIComponent(e.key) + '">' +
     '<span class="no room" aria-hidden="true">3D</span><span class="nm">' + esc(entryShort(e, f)) + '</span>' +
     '<span class="mt">' + [e.cabs ? e.cabs + ' cabs' : '', e.parts ? e.parts + ' parts' : '', niceDate(e.updated)].filter(Boolean).join(' · ') + '</span></a></li>').join('');
+  folderRefresh(f);
   folderNotes(f);
+}
+// ---- "Mark for refresh": a job stays as it was uploaded (re-nested or re-cut parts don't change it); marking a room
+// asks the office PC's sync to rebuild it from its latest nests at the next run (9am, 12pm, 3pm). The sync also says
+// here which rooms have new nests waiting. Anyone can mark - no PIN.
+const refreshOf = () => { const r = DASH.refresh || {}; return {req: r.req || {}, changed: r.changed || {}, dismissed: r.dismissed || {}}; };
+// home: a published job whose 3D model (DAE) was re-exported since asks "refresh this job?" (Not now hides it for
+// everyone until the model changes again)
+function daeBanner(jobs){
+  const box = $('daeNew'), R = refreshOf(), arch = new Set(SET().archived);
+  const todo = jobs.filter(e => !arch.has(e.key) && R.changed[e.key] && R.changed[e.key].dae && !R.req[e.key] && R.dismissed[e.key] !== R.changed[e.key].stamp);
+  box.innerHTML = ''; box.hidden = !todo.length;
+  for (const e of todo){
+    const row = document.createElement('div'); row.className = 'dn'; row.setAttribute('role', 'status');
+    row.innerHTML = '<span><b></b> has a new 3D model (DAE). Refresh this job?</span><button type="button" class="pri" data-y>Refresh</button><button type="button" data-n>Not now</button>';
+    row.querySelector('b').textContent = SET().names[e.key] || e.name;
+    const act = async (body, msg) => {
+      row.querySelectorAll('button').forEach(b => b.disabled = true);
+      const r = await api(body);
+      if (!r.ok){ row.querySelectorAll('button').forEach(b => b.disabled = false);
+        return scanToast('Not changed: ' + (r.error === 'wrong PIN' ? 'the team script needs its update (Publish script.bat)' : r.error || 'try again')); }
+      DASH.refresh = r.refresh; try { localStorage.setItem('pf-dash', JSON.stringify(DASH)); } catch (_) {}
+      scanToast(msg); drawAll(jobs);
+    };
+    row.querySelector('[data-y]').onclick = () => act({pf: 'refresh.req', key: e.key, on: true, by: noteName, name: e.name}, 'Marked for refresh - it rebuilds at the next sync');
+    row.querySelector('[data-n]').onclick = () => act({pf: 'refresh.dismiss', key: e.key, stamp: R.changed[e.key].stamp, by: noteName}, 'OK - left as it is');
+    box.appendChild(row);
+  }
+}
+function folderRefresh(f){
+  const box = $('fRefresh'), R = refreshOf();
+  box.innerHTML = '<h2>Updates</h2><p class="rhelp">Jobs stay as they were uploaded, so re-nested or changed parts don\'t change them. ' +
+    'Mark a room for refresh to rebuild it from its latest nests at the next sync (9am, 12pm, 3pm).</p><ul class="rlist"></ul>';
+  const list = box.querySelector('.rlist');
+  for (const e of f.entries){
+    const req = R.req[e.key], ch = R.changed[e.key];
+    const li = document.createElement('li'); li.className = 'rrow';
+    li.innerHTML = '<span class="rnm"></span><span class="rst"></span><button type="button"></button>';
+    li.querySelector('.rnm').textContent = entryShort(e, f);
+    const st = li.querySelector('.rst'), b = li.querySelector('button');
+    if (req){ st.className = 'rst req'; st.textContent = 'Marked for refresh' + (req.by ? ' by ' + req.by : '') + ' - rebuilds at the next sync'; }
+    else if (ch){ st.className = 'rst chg'; st.textContent = 'Changed since upload: ' + ch.what; }
+    else st.textContent = 'As uploaded' + (e.updated ? ' ' + niceDate(e.updated) : '');
+    b.textContent = req ? 'Cancel' : 'Mark for refresh'; if (!req) b.className = 'pri';
+    b.onclick = async () => {
+      b.disabled = true;
+      const r = await api({pf: 'refresh.req', key: e.key, on: !req, by: noteName, name: e.name});
+      b.disabled = false;
+      if (!r.ok) return scanToast('Not changed: ' + (r.error === 'wrong PIN' ? 'the team script needs its update (Publish script.bat)' : r.error || 'try again'));
+      DASH.refresh = r.refresh; try { localStorage.setItem('pf-dash', JSON.stringify(DASH)); } catch (_) {}
+      folderRefresh(f); scanToast(!req ? 'Marked for refresh - it rebuilds at the next sync' : 'Refresh cancelled');
+    };
+    list.appendChild(li);
+  }
 }
 // ---- notes on the dashboard (one job folder): read, tick off, add a general note
 let noteName = ''; try { noteName = localStorage.getItem('pf-name') || ''; } catch (_) {}
@@ -1233,6 +1310,35 @@ function outline(g){
   }
   const eg = new THREE.BufferGeometry(); eg.setAttribute('position', new THREE.Float32BufferAttribute(out, 3)); return eg;
 }
+// v57: cut-outs, routes and holes drawn inside a board's faces are machining: black lines ("so they are clearly
+// visible", Mason, J1121 Bathroom 2 Top 226) whenever the board is shown solid in an isolated cabinet, on its own,
+// or picked - instead of the board's outline colour (cyan on a picked part). Lifted 0.4 mm off the face so they
+// don't break up into dashes against it. A segment is the board's outline when both ends sit on the same side of
+// its box; everything else (cut-out edges, hole walls, route lines) is machining.
+const CUT_INK = 0x111111, CUT_LIFT = 0.4;
+function cutLines(eg, box){
+  const pos = eg.attributes.position, arr = pos.array, idx = eg.index, n = idx ? idx.count : pos.count;
+  const lo = [box.min.x, box.min.y, box.min.z], hi = [box.max.x, box.max.y, box.max.z], ext = [0, 1, 2].map(a => hi[a] - lo[a]);
+  const t = ext.indexOf(Math.min(...ext));
+  if (ext[t] < 3 || ext[t] > 60 || n < 2) return null;                       // (boards only)
+  const inPlane = [0, 1, 2].filter(a => a !== t), on = (v, x) => Math.abs(v - x) < 0.3;
+  const keep = [], cut = [], A = [0, 0, 0], B = [0, 0, 0];
+  for (let k = 0; k + 1 < n; k += 2){
+    const i = idx ? idx.getX(k) : k, j = idx ? idx.getX(k + 1) : k + 1;
+    for (let a = 0; a < 3; a++){ A[a] = arr[i * 3 + a]; B[a] = arr[j * 3 + a]; }
+    const side = inPlane.some(a => (on(A[a], lo[a]) && on(B[a], lo[a])) || (on(A[a], hi[a]) && on(B[a], hi[a])));
+    if (side){ keep.push(i, j); continue; }
+    for (const P of [A, B]){                                                  // lift off the face it lies on
+      const q = P.slice(); if (on(q[t], lo[t])) q[t] -= CUT_LIFT; else if (on(q[t], hi[t])) q[t] += CUT_LIFT;
+      cut.push(q[0], q[1], q[2]);
+    }
+  }
+  if (!cut.length) return null;
+  const outline = new THREE.BufferGeometry(); outline.setAttribute('position', pos); outline.setIndex(keep);
+  const lines = new THREE.BufferGeometry(); lines.setAttribute('position', new THREE.Float32BufferAttribute(cut, 3));
+  return {outline, lines};
+}
+const cutsShown = x => x.meshes.length && x.meshes[0].material.opacity > .9 && (iso !== null || x === sel || x === solo || x === tipSel);
 function makeObject(rec, isPart){
   const subs = rec.subs || [{m: -1, p: rec.mesh.p, i: rec.mesh.i}];   // (v1 job files: one plain mesh)
   const meshes = [], edges = [], box = new THREE.Box3();
@@ -1247,6 +1353,9 @@ function makeObject(rec, isPart){
       let eg;
       if (s.e && s.e.length){ eg = new THREE.BufferGeometry(); eg.setAttribute('position', g.attributes.position); eg.setIndex(s.e); }
       else eg = outline(g);
+      const cut = isPart ? cutLines(eg, g.boundingBox) : null;
+      if (cut){ eg = cut.outline; const c = new THREE.LineSegments(cut.lines, new THREE.LineBasicMaterial({color: CUT_INK, transparent: true, clippingPlanes: CLIP}));
+        c.userData.mi = s.m; c.userData.cut = true; scene.add(c); edges.push(c); }
       const e = new THREE.LineSegments(eg, new THREE.LineBasicMaterial({transparent:true, clippingPlanes: CLIP}));
       e.userData.mi = s.m;
       scene.add(e); edges.push(e); }
@@ -1472,7 +1581,9 @@ function setLook(x, opacity, edgeColor, edgeOpacity, tint){
     mat.emissive.copy(tint || mat.userData.lit || BLACK); mat.userData.glow = !!tint;      // (an LED strip keeps its glow)
     m.renderOrder = opacity > .9 ? 2 : 1;
   }
-  for (const e of x.edges){ e.material.color.copy(edgeColor); e.material.opacity = edgeOpacity; e.material.visible = edgeOpacity > 0; }
+  for (const e of x.edges){
+    if (e.userData.cut && cutsShown(x)){ e.material.color.setHex(CUT_INK); e.material.opacity = 1; e.material.visible = true; continue; }
+    e.material.color.copy(edgeColor); e.material.opacity = edgeOpacity; e.material.visible = edgeOpacity > 0; }   // (else drawn like the outline)
 }
 function paint(){
   shadowDirty = true; forceFrame = true; capsDirty = true;
@@ -1550,7 +1661,8 @@ function finishOptions(){
   return opts;
 }
 // A job's finishes can be swapped (Change finish) and adjusted (Textures tab: brightness and a colour tint). Both are
-// kept by the team's Apps Script per job, so every device shows the same; changing them needs the settings PIN.
+// kept by the team's Apps Script per job, so every device shows the same. A change shows on this screen at once, and
+// a pop-up asks whether to save it for all users (no PIN).
 const finishChoice = {}, lookAdj = {};
 let FG = null;                                                  // finish groups (sheet materials, benchtop), once
 const finishGroupsC = () => FG || (FG = finishGroups());
@@ -1601,29 +1713,46 @@ function adjustFinish(key, a){
   restyleWhere(m => fk(m) === key);
   saveLooks();
 }
-// shared: loaded once the page is up, saved (PIN) a moment after the last change
-let looksT = 0, looksLoaded = false;
-function saveLooks(){
-  if (!looksLoaded) return;
-  clearTimeout(looksT);
-  looksT = setTimeout(async () => {
-    if (!pinOk){ const p = prompt('Settings PIN - finish changes are saved for everyone'); if (!p){ scanToast('Finish changes not saved (no PIN) - they show on this screen only'); return; } pinOk = p; }
-    const r = await api({pf: 'look.save', pin: pinOk, job: ENTRY, by: noteName, looks: {adj: lookAdj, swap: finishChoice}}, 20000);
-    if (!r.ok){ if (r.error === 'wrong PIN') pinOk = ''; scanToast('Finish changes not saved: ' + (r.error || 'try again')); return; }
-    try { sessionStorage.setItem('pf-pin', pinOk); } catch (_) {}
-    scanToast('Finishes saved for everyone');
-  }, 900);
+// shared: loaded once the page is up. Changes show here straight away; the pop-up saves them for all users or undoes them
+let looksLoaded = false, savedLooks = '{"adj":{},"swap":{}}';
+const looksNow = () => JSON.stringify({adj: lookAdj, swap: finishChoice});
+function saveLooks(){ if (looksLoaded) looksBar(); }
+function setLooks(json){
+  const v = JSON.parse(json);
+  for (const k of Object.keys(finishChoice)) delete finishChoice[k];
+  for (const k of Object.keys(lookAdj)) delete lookAdj[k];
+  Object.assign(finishChoice, v.swap || {}); Object.assign(lookAdj, v.adj || {});
+  restyleWhere(() => true); paint();
+  if (!$('sheet').hidden && sheetTab === 'tex') buildSheet();
+}
+function looksBar(){
+  let bar = $('looksBar');
+  if (!looksLoaded || looksNow() === savedLooks){ if (bar) bar.hidden = true; return; }
+  if (!bar){
+    bar = document.createElement('div'); bar.id = 'looksBar'; bar.className = 'hidebar looksbar';
+    bar.setAttribute('role', 'dialog'); bar.setAttribute('aria-label', 'Save finish changes');
+    bar.innerHTML = '<span>Save these finish changes for all users?</span>' +
+      '<button type="button" class="pri" data-save>Save for all users</button><button type="button" data-undo>Undo</button>';
+    $('stage').appendChild(bar);
+    bar.querySelector('[data-save]').onclick = async ev => {
+      const btn = ev.currentTarget, want = looksNow(); btn.disabled = true;
+      const r = await api({pf: 'look.save', job: ENTRY, by: noteName, looks: JSON.parse(want), pin: pinOk || undefined}, 20000);
+      btn.disabled = false;
+      if (!r.ok) return scanToast('Finish changes not saved: ' + (r.error === 'wrong PIN' ? 'the team script needs its update (Publish script.bat)' : r.error || 'try again'));
+      savedLooks = want; looksBar(); scanToast('Finishes saved for all users');
+    };
+    bar.querySelector('[data-undo]').onclick = () => { setLooks(savedLooks); looksBar(); };
+  }
+  const hb = $('hideBar'), vb = $('stage').querySelector('.views');
+  bar.style.top = (hb && !hb.hidden ? hb.offsetTop + hb.offsetHeight + 8 : (vb ? vb.offsetTop + vb.offsetHeight : 46) + 10) + 'px';
+  bar.hidden = false;
 }
 async function loadLooks(){
   const r = await api({pf: 'look', job: ENTRY}, 15000);
   if (r.ok && r.looks){
-    for (const k of Object.keys(finishChoice)) delete finishChoice[k];
-    for (const k of Object.keys(lookAdj)) delete lookAdj[k];
-    Object.assign(finishChoice, r.looks.swap || {}); Object.assign(lookAdj, r.looks.adj || {});
-    restyleWhere(() => true); paint();
-    if (!$('sheet').hidden && sheetTab === 'tex') buildSheet();
+    setLooks(JSON.stringify({adj: r.looks.adj || {}, swap: r.looks.swap || {}}));
   }
-  looksLoaded = true;
+  savedLooks = looksNow(); looksLoaded = true; looksBar();
 }
 function finishRow(label, opts){
   const el = document.createElement('div'); el.className = 'fin';
@@ -1705,6 +1834,7 @@ function applyVisibility(){
   for (const L of ledLights) L.light.intensity = showLights && L.strips.some(h => h.glow.visible) ? LED_LEVEL : 0;
   updateLabels();
   hideBar();
+  if (typeof looksBar === 'function') looksBar();
 }
 // ---- parts hidden for everyone: hide parts as usual, then "Save for everyone" keeps them hidden on every screen.
 // A part is known by its cut-list ID (or, with none, its code and where it sits), so a rebuilt job keeps the list.
@@ -1886,11 +2016,11 @@ function buildTextures(body, sec){
   }
   const b = document.createElement('div'); b.className = 'sheetbtns';
   b.innerHTML = '<button type="button">Reset all finishes</button>';
-  b.querySelector('button').onclick = () => { if (!confirm('Put every finish back to how Cabinet Vision exported it - for everyone?')) return;
+  b.querySelector('button').onclick = () => { if (!confirm('Put every finish back to how Cabinet Vision exported it?')) return;
     Object.keys(finishChoice).forEach(k => delete finishChoice[k]); Object.keys(lookAdj).forEach(k => delete lookAdj[k]);
     restyleWhere(() => true); saveLooks(); paint(); buildSheet(); };
   body.appendChild(b);
-  const n = document.createElement('p'); n.className = 'nhint'; n.textContent = 'Changes here are saved for everyone (settings PIN).'; body.appendChild(n);
+  const n = document.createElement('p'); n.className = 'nhint'; n.textContent = 'Changes show on this screen first - you\'re asked whether to save them for all users.'; body.appendChild(n);
 }
 function openSheet(open){ $('sheet').hidden = !open; $('vLayers').setAttribute('aria-pressed', open); if (open) buildSheet(); }
 $('vLayers').onclick = () => openSheet($('sheet').hidden);
@@ -3014,7 +3144,7 @@ function goFix(f){
   } else { if (iso !== null) isolate(null); requestAnimationFrame(() => requestAnimationFrame(view)); }
 }
 // ---- job PDFs: shop drawings, assembly sheets, hardware sheets. The sync publishes the ones saved next to the
-// job's DAE; any extra can be uploaded here (settings PIN) and are kept in the team's Google Drive.
+// job's DAE; any extra can be uploaded here and are kept in the team's Google Drive.
 const DOC_T = {shop: 'Shop drawings', assembly: 'Assembly sheets', hardware: 'Hardware sheets'};
 let jobDocs = [], upDocs = [], docT = 'shop', docPdf = null, docZoom = 1, docObs = null, docCur = null, folderEntries = [];
 const docsOf = t => jobDocs.filter(d => d.t === t).concat(upDocs.filter(d => d.t === t));
@@ -3249,18 +3379,14 @@ $('dvBody').addEventListener('scroll', () => { clearTimeout($('dvBody')._t); $('
     clearTimeout(body._z); body._zf = (body._zf || 1) * Math.exp(-e.deltaY / 200);
     body._z = setTimeout(() => { zoomTo(docZoom * body._zf, e.clientX, e.clientY); body._zf = 1; }, 120); }, {passive: false});
 }
-$('dvUp').onclick = () => {
-  if (!pinOk){ const p = prompt('Settings PIN to upload a PDF'); if (!p) return; pinOk = p; }
-  $('dvFile').value = ''; $('dvFile').click();
-};
+$('dvUp').onclick = () => { $('dvFile').value = ''; $('dvFile').click(); };
 $('dvFile').onchange = async () => {
   const f = $('dvFile').files[0]; if (!f) return;
   if (f.size > 30e6) return docMsg('That PDF is over 30 MB - save it next to the job\'s DAE instead (the sync publishes any size up to 90 MB).');
   docMsg('Uploading ' + esc(f.name) + '…');
   const b64 = await new Promise(ok => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1]); r.readAsDataURL(f); });
-  const r = await api({pf: 'doc.put', pin: pinOk, job: FOLDER, t: docT, name: f.name, b64}, 180000);
-  if (!r.ok){ if (r.error === 'wrong PIN'){ pinOk = ''; } return docMsg('Not uploaded: ' + esc(r.error)); }
-  try { sessionStorage.setItem('pf-pin', pinOk); } catch (_) {}
+  const r = await api({pf: 'doc.put', pin: pinOk || undefined, job: FOLDER, t: docT, name: f.name, b64}, 180000);
+  if (!r.ok) return docMsg('Not uploaded: ' + esc(r.error === 'wrong PIN' ? 'the team script needs its update (Publish script.bat)' : r.error));
   upDocs.push(r.doc); docButtons(); openDocs(docT);
   const i = docsOf(docT).indexOf(r.doc); $('dvSel').value = i; showDoc(r.doc);
   if (docT === 'assembly'){ asmDone = false; asmByCab = {}; setTimeout(readAssembly, 500); }
