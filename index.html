@@ -1400,7 +1400,7 @@ function texture(file){
           const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w * k)); c.height = Math.max(1, Math.round(h * k));
           c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); t.image = c; t.needsUpdate = true;
         }
-        (texVariants[file] || []).forEach(v => { v.image = t.image; v.needsUpdate = true; }); texUsers[file].forEach(m => { m.needsUpdate = true; }); markDirty(); },
+        (texVariants[file] || []).forEach(v => { v.image = t.image; v.needsUpdate = true; }); texUsers[file].forEach(m => { m.needsUpdate = true; }); markDirty(); if (window.__mirrorSoon) window.__mirrorSoon(500); },
       undefined,
       () => texUsers[file].forEach(m => { m.map = null; m.color.copy(m.userData.fallback); m.userData.base.copy(m.userData.fallback); m.needsUpdate = true; }));
     t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = Math.min(PHONE ? 4 : 8, renderer.capabilities.getMaxAnisotropy());
@@ -1445,14 +1445,21 @@ function finishOf(mi, kind){
   if (WALLK(kind) || kind === 'room') return {r: .9, m: 0};
   return {r: .62, m: 0};                                                       // melamine, laminate, timber veneer
 }
+// v60: mirrors are silvered glass - fully reflective, near-white, no picture. A board the job file marks as a mirror
+// (a thin facing on a door in a metal or mirror finish: CV gives a shaving cabinet's mirror its edging's metal, J1121),
+// or a finish called a mirror. They reflect the room: see "mirrors reflect the room" below.
+const MIRROR_C = 0xf3f5f7;
+const isMirror = (mi, kind) => kind === 'mirror' || /mirror/i.test(((JOB.materials || [])[mi] || {}).name || '') || /mirror/i.test((MATS[mi] || {}).t || '');
 function realMaterial(mi, kind){
-  const d = MATS[mi], f = finishOf(mi, kind);
+  const d = MATS[mi], f = finishOf(mi, kind), mirror = isMirror(mi, kind);
   const base = {side:THREE.DoubleSide, polygonOffset:true, polygonOffsetFactor:1, polygonOffsetUnits:1, clippingPlanes: CLIP, clipShadows: true};
   const mat = LITE ? new THREE.MeshLambertMaterial(base)
-    : new THREE.MeshStandardMaterial(Object.assign(base, {roughness: f.r, metalness: f.m, envMapIntensity: ENV_LEVEL * (f.m > .5 ? 1.8 : f.r < .3 ? 1.4 : 1)}));
+    : new THREE.MeshStandardMaterial(Object.assign(base, mirror ? {roughness: .03, metalness: 1, envMapIntensity: ENV_LEVEL * 2.6}
+                                                              : {roughness: f.r, metalness: f.m, envMapIntensity: ENV_LEVEL * (f.m > .5 ? 1.8 : f.r < .3 ? 1.4 : 1)}));
   // see-through only while faded: solid boards are drawn front to back and skip hidden pixels (much less work)
   Object.defineProperty(mat, 'transparent', {get(){ return this.opacity < 0.999; }, set(_){}, configurable: true});
-  if (d && d.t){
+  if (mirror){ mat.color.set(MIRROR_C); mat.userData.mirror = true; }
+  else if (d && d.t){
     // v2 UVs are already in real-size repeats; v1 needs the material's tile size
     const t = JOB.v >= 2 ? textureAt(d.t, 1, 1) : textureAt(d.t, 1 / (d.s[0] || 24), 1 / (d.s[1] || 24));
     mat.map = t; mat.color.set(0xffffff);
@@ -1587,7 +1594,7 @@ function makeObject(rec, isPart){
   const meshes = [], edges = [], box = new THREE.Box3();
   for (const s of subs){
     const g = geo(s, isPart);
-    const mesh = new THREE.Mesh(g, realMaterial(s.m, isPart ? 'part' : rec.k));
+    const mesh = new THREE.Mesh(g, realMaterial(s.m, rec.mirror ? 'mirror' : isPart ? 'part' : rec.k));
     mesh.castShadow = !WALLK(rec.k) && rec.k !== 'room'; mesh.receiveShadow = true;
     mesh.userData.mi = s.m;
     if (isPart) mesh.userData.part = rec;
@@ -1663,7 +1670,73 @@ for (const w of walls){
   if (n.dot(JC.clone().sub(c)) < 0) n.negate();          // points into the room
   w.inward = n; w.face = c.clone().addScaledVector(n, Math.min(s.x, s.z) / 2); w.fade = 1;
 }
+// ---- mirrors reflect the room ----
+// A mirror shows the room in front of it: once the finishes are in, one small 360-degree picture of the room is taken
+// from in front of the mirrors (the mirrors themselves hidden) and used as their reflection. (A true flat-mirror
+// reflection would redraw the whole room every frame for every mirror - too much for a phone.)
+const mirrorObjs = parts.filter(x => x.meshes.some(m => m.material.userData.mirror));
+let mirrorRT = null, mirrorCam = null, mirrorDue = 0; const mirrorN = new THREE.Vector3();
+if (mirrorObjs.length && !(typeof LITE !== 'undefined' && LITE)){
+  mirrorRT = new THREE.WebGLCubeRenderTarget(256, {format: THREE.RGBAFormat, generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter});
+  mirrorRT.texture.encoding = THREE.sRGBEncoding;
+  mirrorCam = new THREE.CubeCamera(20, 70000, mirrorRT); scene.add(mirrorCam);
+  const c = new THREE.Vector3(), nrm = new THREE.Vector3();
+  for (const x of mirrorObjs){
+    const s = x.box.getSize(new THREE.Vector3()), mc = x.box.getCenter(new THREE.Vector3());
+    const t = s.x <= s.y && s.x <= s.z ? 0 : s.y <= s.z ? 1 : 2;           // the mirror's thin direction
+    const cab = new THREE.Box3(); parts.forEach(p => { if (p.p.g === x.p.g && p !== x) cab.union(p.box); });
+    const out = cab.isEmpty() ? JC.getComponent(t) - mc.getComponent(t) : mc.getComponent(t) - cab.getCenter(new THREE.Vector3()).getComponent(t);
+    c.add(mc); nrm.add(new THREE.Vector3().setComponent(t, Math.sign(out) || 1));   // (faces away from its cabinet)
+  }
+  c.divideScalar(mirrorObjs.length); if (nrm.lengthSq() < 1e-6) nrm.set(0, 0, 1); nrm.normalize();
+  mirrorCam.position.copy(c).addScaledVector(nrm, 450);
+  mirrorN.copy(nrm);
+  for (const x of mirrorObjs) for (const m of x.meshes) if (m.material.userData.mirror){
+    m.material.envMap = mirrorRT.texture; m.material.envMapIntensity = 1.2; m.material.needsUpdate = true; }
+}
+// what the mirror sees beyond the drawn walls (a job only has the walls the joinery is on): a soft studio - bright
+// above, a pale horizon, a cool grey floor, and a few tall softbox panels - so the glass reads as polished silver with
+// light bands across it, rather than a flat grey card
+let mirrorDome = null, mirrorDone = false;
+function mirrorBackdrop(){
+  const cv = document.createElement('canvas'); cv.width = 1024; cv.height = 512;
+  const x = cv.getContext('2d'), sky = x.createLinearGradient(0, 0, 0, 512);
+  sky.addColorStop(0, '#ffffff'); sky.addColorStop(0.42, '#eef1f4'); sky.addColorStop(0.5, '#dde2e6');
+  sky.addColorStop(0.58, '#c4cbd1'); sky.addColorStop(1, '#8e979f');
+  x.fillStyle = sky; x.fillRect(0, 0, 1024, 512);
+  for (const [u, w] of [[0.06, 70], [0.2, 34], [0.31, 90], [0.47, 40], [0.58, 76], [0.72, 30], [0.83, 96], [0.95, 44]]){
+    const cx = u * 1024, g = x.createLinearGradient(cx - w, 0, cx + w, 0);
+    g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.35, 'rgba(255,255,255,.9)'); g.addColorStop(0.65, 'rgba(255,255,255,.9)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    x.fillStyle = g; x.fillRect(cx - w, 60, w * 2, 330);
+    x.fillStyle = 'rgba(60,68,76,.3)'; x.fillRect(cx + w * 0.9, 60, 8, 330);          // (a soft dark edge beside each panel)
+  }
+  const t = new THREE.CanvasTexture(cv); t.encoding = THREE.sRGBEncoding;
+  const d = new THREE.Mesh(new THREE.SphereGeometry(30000, 48, 24), new THREE.MeshBasicMaterial({map: t, side: THREE.BackSide, depthWrite: false, fog: false, toneMapped: false}));
+  d.visible = false; d.renderOrder = -1; return d;
+}
+function captureMirrors(){
+  if (!mirrorCam) return;
+  if (!mirrorDome){ mirrorDome = mirrorBackdrop(); scene.add(mirrorDome); }
+  mirrorDome.position.copy(mirrorCam.position); mirrorDome.visible = true;
+  const hid = [], op = [];
+  for (const x of mirrorObjs) for (const o of x.meshes.concat(x.edges)) if (o.visible){ o.visible = false; hid.push(o); }
+  for (const w of walls){
+    // the ceiling and the wall the mirrors face: studio light instead (a plain painted wall in a mirror reads as a grey card)
+    if (w.p.k === 'ceiling' || (w.inward && w.inward.dot(mirrorN) < -0.7)){ for (const o of w.meshes) if (o.visible){ o.visible = false; hid.push(o); } continue; }
+    for (const m of w.meshes){ op.push([m.material, m.material.opacity]); m.material.opacity = 1; }                   // (walls seen whole)
+  }
+  try { mirrorCam.update(renderer, scene); mirrorDone = true; } catch (e) { console.warn('mirror', e); }
+  hid.forEach(o => { o.visible = true; }); op.forEach(([m, o]) => { m.opacity = o; });
+  mirrorDome.visible = false;
+  markDirty();
+}
+// (taken on the next frame after the wait - the drawing loop, not a timer: a phone busy loading can hold timers back)
+const mirrorSoon = ms => { if (mirrorCam) mirrorDue = performance.now() + ms; };
+window.__mirrorSoon = mirrorSoon;           // (each finish picture that arrives asks for a fresh one)
+mirrorSoon(900);
+window.__mirrors = () => mirrorCam ? mirrorObjs.length + (mirrorDone ? ' taken' : ' waiting') : 0;   // (tests)
 function wallStep(){
+  if (mirrorDue && performance.now() >= mirrorDue){ mirrorDue = 0; captureMirrors(); }
   for (const w of walls){
     const behind = camera.position.clone().sub(w.face).dot(w.inward) < 0;
     const want = behind ? 0.08 : 1;
@@ -1926,7 +1999,7 @@ function fk(m){
 }
 function restyle(m){
   const mat = m.material, ud = mat.userData, mi = m.userData.mi;
-  if (!ud.base) return;
+  if (!ud.base || ud.mirror) return;                 // (a mirror stays a mirror whatever its CV finish is changed to)
   if (!ud.orig) ud.orig = {map: mat.map, base: ud.base.clone()};
   let map = ud.orig.map; const base = ud.orig.base.clone();
   let choice = '';
@@ -4021,7 +4094,7 @@ function drawAO(){
 // they are rebuilt once things are still again.
 const BATCH_LAYER = 5, NOBATCH = /[?&]nobatch\b/.test(location.search);
 let batches = [], batchMembers = [], batchWanted = 0, batchStable = 0, batchLastSig = '', batchPartial = false;
-const batchObjs = () => parts.concat(hardware).filter(x => !(x.p && WALLK(x.p.k)));
+const batchObjs = () => parts.concat(hardware).filter(x => !(x.p && WALLK(x.p.k)) && !x.meshes.some(m => m.material.userData.mirror));
 function meshKey(m){
   const t = m.material;
   if (!m.visible || !t || !t.visible || t.wireframe || !m.parent) return null;     // (faded ghosts merge too: see-through stays quick)
