@@ -1622,6 +1622,7 @@ function makeObject(rec, isPart){
     if (isPart || rec.r){                 // (older job files flag drawn route outlines with r)
       let eg;
       if (s.e && s.e.length){ eg = new THREE.BufferGeometry(); eg.setAttribute('position', g.attributes.position); eg.setIndex(s.e); }
+      else if (MATS[s.m] && MATS[s.m].tape) continue;   // (v62d) edge tape: no lines - the strip's own creases drew black lines
       else eg = outline(g);
       const cut = isPart ? cutLines(eg, g.boundingBox) : null;
       if (cut){ eg = cut.outline; const c = new THREE.LineSegments(cut.lines, new THREE.LineBasicMaterial({color: CUT_INK, transparent: true, clippingPlanes: CLIP}));
