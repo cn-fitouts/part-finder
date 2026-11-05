@@ -1389,6 +1389,19 @@ function textureAt(file, rx, ry){
   }
   return texCache[key];
 }
+// v62b edge tape (Mason's photo): a 1 mm PVC strip in the board's colour - plain (no picture), a touch darker and
+// smoother than the board. Its colour is the board picture's mean colour (linear), times the material's k.
+const texAvg = {}, tapeWait = {};
+function texMean(file, img){
+  try {
+    const c = document.createElement('canvas'); c.width = c.height = 16; const g = c.getContext('2d');
+    g.drawImage(img, 0, 0, 16, 16); const px = g.getImageData(0, 0, 16, 16).data; let r = 0, gg = 0, b = 0;
+    for (let i = 0; i < px.length; i += 4){ r += px[i]; gg += px[i + 1]; b += px[i + 2]; }
+    const n = px.length / 4; texAvg[file] = new THREE.Color(r / n / 255, gg / n / 255, b / n / 255).convertSRGBToLinear();
+  } catch (_){ return; }
+  (tapeWait[file] || []).forEach(f => f(texAvg[file])); delete tapeWait[file];
+}
+function tapeColour(file, then){ texture(file); if (texAvg[file]) then(texAvg[file]); else (tapeWait[file] = tapeWait[file] || []).push(then); }
 function texture(file){
   if (!texCache[file]){
     texUsers[file] = [];
@@ -1400,7 +1413,8 @@ function texture(file){
           const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w * k)); c.height = Math.max(1, Math.round(h * k));
           c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); t.image = c; t.needsUpdate = true;
         }
-        (texVariants[file] || []).forEach(v => { v.image = t.image; v.needsUpdate = true; }); texUsers[file].forEach(m => { m.needsUpdate = true; }); markDirty(); if (window.__mirrorSoon) window.__mirrorSoon(500); },
+        (texVariants[file] || []).forEach(v => { v.image = t.image; v.needsUpdate = true; }); texUsers[file].forEach(m => { m.needsUpdate = true; });
+        texMean(file, t.image); markDirty(); if (window.__mirrorSoon) window.__mirrorSoon(500); },
       undefined,
       () => texUsers[file].forEach(m => { m.map = null; m.color.copy(m.userData.fallback); m.userData.base.copy(m.userData.fallback); m.needsUpdate = true; }));
     t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = Math.min(PHONE ? 4 : 8, renderer.capabilities.getMaxAnisotropy());
@@ -1409,7 +1423,7 @@ function texture(file){
   }
   return texCache[file];
 }
-const MATS = (JOB.materials || []).map(m => ({c: new THREE.Color(m.c[0], m.c[1], m.c[2]), t: m.t, s: m.s}));
+const MATS = (JOB.materials || []).map(m => ({c: new THREE.Color(m.c[0], m.c[1], m.c[2]), t: m.t, s: m.s, k: m.k || 1, tape: !!m.tape}));   // k: a shade of the picture (v62: edge tape strips a little darker)
 // CV saves a finish whose colour was changed in CV as a second copy of its picture, named by the tint
 // (..._808080.jpg beside the original ..._ffffff.jpg) - yet still exports the original on some surfaces (the room's
 // walls). Where a job has the original and exactly one edited copy, the edited copy is used everywhere.
@@ -1459,11 +1473,17 @@ function realMaterial(mi, kind){
   // see-through only while faded: solid boards are drawn front to back and skip hidden pixels (much less work)
   Object.defineProperty(mat, 'transparent', {get(){ return this.opacity < 0.999; }, set(_){}, configurable: true});
   if (mirror){ mat.color.set(MIRROR_C); mat.userData.mirror = true; }
+  else if (d && d.t && d.tape){
+    mat.color.copy(d.c).multiplyScalar(d.k); mat.userData.tape = true;
+    if (mat.roughness !== undefined) mat.roughness = Math.max(.25, mat.roughness * .6);
+    tapeColour(d.t, avg => { mat.color.copy(avg).multiplyScalar(d.k); mat.userData.base.copy(mat.color); mat.userData.fallback.copy(mat.color);
+      if (mat.userData.orig) mat.userData.orig.base.copy(mat.color); markDirty(); });
+  }
   else if (d && d.t){
     // v2 UVs are already in real-size repeats; v1 needs the material's tile size
     const t = JOB.v >= 2 ? textureAt(d.t, 1, 1) : textureAt(d.t, 1 / (d.s[0] || 24), 1 / (d.s[1] || 24));
-    mat.map = t; mat.color.set(0xffffff);
-    mat.userData.fallback = d.c.clone();
+    mat.map = t; mat.color.setScalar(d.k);
+    mat.userData.fallback = d.c.clone().multiplyScalar(d.k);
     texUsers[d.t].push(mat);
   } else if (d) mat.color.copy(d.c);
   else mat.color.set(0xd9d4cc);
@@ -2006,12 +2026,15 @@ function restyle(m){
   for (const [label, idx] of finishGroupsC()) if (idx.has(mi) && finishChoice[label]){ choice = finishChoice[label]; break; }
   if (choice && choice.startsWith('tex:')){
     const src = MATS[mi], d = MATS[+choice.slice(4)];
-    if (d && d.t){
+    if (d && d.t && src && src.tape){                 // tape follows the swapped finish's colour, still plain
+      map = null; if (texAvg[d.t]) base.copy(texAvg[d.t]); else tapeColour(d.t, () => restyle(m));
+    } else if (d && d.t){
       const sx = (src && src.t ? src.s[0] : 24) / (d.s[0] || 24), sy = (src && src.t ? src.s[1] : 24) / (d.s[1] || 24);
       map = JOB.v >= 2 ? textureAt(d.t, sx, sy) : textureAt(d.t, 1 / (d.s[0] || 24), 1 / (d.s[1] || 24));
       if (!texUsers[d.t].includes(mat)) texUsers[d.t].push(mat); base.set(0xffffff);
     }
   } else if (choice){ map = null; base.set(choice); }
+  if (choice && MATS[mi] && MATS[mi].k !== 1) base.multiplyScalar(MATS[mi].k);   // (a darker copy stays darker)
   const a = lookAdj[fk(m)];
   if (a){ if (a.c && a.c !== '#ffffff') base.multiply(new THREE.Color(a.c)); if (a.b != null && a.b !== 1) base.multiplyScalar(a.b); }
   if (mat.map !== map){ mat.map = map; mat.needsUpdate = true; }
