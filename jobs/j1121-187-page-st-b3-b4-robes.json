@@ -1,0 +1,15 @@
+{
+ "job": "J1121 - 187 Page St - B3+B4 Robes",
+ "rooms": [
+  {
+   "room": "Bed 3 Robe",
+   "key": "j1121-187-page-st-bed-3-robe",
+   "ids": "1-6,8-56,58-145,148-150,153-164"
+  },
+  {
+   "room": "Bed 4 Robe",
+   "key": "j1121-187-page-st-bed-4-robe",
+   "ids": "165-172,174-233,235-264,267-269,272-284"
+  }
+ ]
+}
