@@ -1072,7 +1072,7 @@ function drawAll(jobs){
       (rooms.length ? '<span class="rooms">' + rooms.slice(0, 4).map(r => '<em>' + esc(r) + '</em>').join('') + (rooms.length > 4 ? '<em>+' + (rooms.length - 4) + '</em>' : '') + '</span>' : '') +
       '<span class="mt">' + [many ? plural(f.entries.length, 'room') : '', cabs ? cabs + ' cabs' : '', partsN ? partsN + ' parts' : '', niceDate(f.updated)].filter(Boolean).join(' · ') + '</span>' +
       (n ? '<span class="nbadge">' + plural(n, 'note') + '</span>' : '') +
-      (f.entries.some(e => refreshOf().changed[e.key] && !refreshOf().req[e.key]) ? '<span class="nbadge chg">Nests changed</span>' : '') + '</a></li>';
+      (f.entries.some(e => (refreshOf().changed[e.key] || {}).dae && !refreshOf().req[e.key]) ? '<span class="nbadge chg">New 3D model</span>' : '') + '</a></li>';
   }).join('');
   $('jobsEmpty').hidden = list.length > 0;
   $('jobsEmpty').textContent = !jobs.length ? 'No jobs uploaded yet. Jobs appear here after the sync publishes them.' : 'No job matches "' + $('q').value + '".';
