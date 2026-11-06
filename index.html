@@ -1585,7 +1585,7 @@ function outline(g){
 // or picked - instead of the board's outline colour (cyan on a picked part). Lifted 0.4 mm off the face so they
 // don't break up into dashes against it. A segment is the board's outline when both ends sit on the same side of
 // its box; everything else (cut-out edges, hole walls, route lines) is machining.
-const CUT_INK = 0x111111, CUT_LIFT = 0.4;
+const CUT_INK = 0x111111, CUT_LIFT = 0.4, SOFT_CUT = 0.25;   // (edge profiles and small holes: a quarter of the black)
 // (v66, Mason: "black lines more prominent when a cabinet is isolated") only real cut-outs, grooves and routes go
 // black. Two kinds of lines are drawn like the outline instead: an edge profile (a door's eased / rounded edge: a
 // long line running beside an edge within CUT_EDGE mm) and small bores (dowel / cam / pin holes: a ring of lines
@@ -1598,7 +1598,8 @@ function cutLines(eg, box){
   const t = ext.indexOf(Math.min(...ext));
   if (ext[t] < 3 || ext[t] > 60 || n < 2) return null;                       // (boards only)
   const inPlane = [0, 1, 2].filter(a => a !== t), on = (v, x) => Math.abs(v - x) < 0.3;
-  const keep = [], segs = [], A = [0, 0, 0], B = [0, 0, 0];
+  const keep = [], segs = [], soft = [], A = [0, 0, 0], B = [0, 0, 0];
+  const lift = (P, out) => { const q = P.slice(); if (on(q[t], lo[t])) q[t] -= CUT_LIFT; else if (on(q[t], hi[t])) q[t] += CUT_LIFT; out.push(q[0], q[1], q[2]); };
   for (let k = 0; k + 1 < n; k += 2){
     const i = idx ? idx.getX(k) : k, j = idx ? idx.getX(k + 1) : k + 1;
     for (let a = 0; a < 3; a++){ A[a] = arr[i * 3 + a]; B[a] = arr[j * 3 + a]; }
@@ -1607,10 +1608,10 @@ function cutLines(eg, box){
     // an edge profile: runs along one in-plane axis, close beside an edge, for a good length
     const along = inPlane.find(a => Math.abs(A[a] - B[a]) > 50), across = inPlane.find(a => a !== along);
     if (along !== undefined && Math.abs(A[across] - B[across]) < 0.5 &&
-        Math.min(Math.abs(A[across] - lo[across]), Math.abs(A[across] - hi[across])) <= CUT_EDGE){ keep.push(i, j); continue; }
+        Math.min(Math.abs(A[across] - lo[across]), Math.abs(A[across] - hi[across])) <= CUT_EDGE){ lift(A, soft); lift(B, soft); continue; }
     // (and where it turns a corner: a short piece within CUT_EDGE of both edges of a corner)
     const nearSide = (a, P) => Math.min(Math.abs(P[a] - lo[a]), Math.abs(P[a] - hi[a])) <= CUT_EDGE;
-    if (Math.hypot(A[0] - B[0], A[1] - B[1], A[2] - B[2]) <= CUT_EDGE && inPlane.every(a => nearSide(a, A) && nearSide(a, B))){ keep.push(i, j); continue; }
+    if (Math.hypot(A[0] - B[0], A[1] - B[1], A[2] - B[2]) <= CUT_EDGE && inPlane.every(a => nearSide(a, A) && nearSide(a, B))){ lift(A, soft); lift(B, soft); continue; }
     segs.push([i, j, A.slice(), B.slice()]);
   }
   // small bores: groups of lines (joined end to end, gaps up to CUT_GAP closed - CV's curves come in loose pieces)
@@ -1632,16 +1633,13 @@ function cutLines(eg, box){
   const cut = [];
   segs.forEach((sg, k) => {
     const b = span.get(find(k));
-    if (b[1] - b[0] <= CUT_BORE && b[3] - b[2] <= CUT_BORE){ keep.push(sg[0], sg[1]); return; }
-    for (const P of [sg[2], sg[3]]){                                          // lift off the face it lies on
-      const q = P.slice(); if (on(q[t], lo[t])) q[t] -= CUT_LIFT; else if (on(q[t], hi[t])) q[t] += CUT_LIFT;
-      cut.push(q[0], q[1], q[2]);
-    }
+    const to = b[1] - b[0] <= CUT_BORE && b[3] - b[2] <= CUT_BORE ? soft : cut;   // (lifted off the face it lies on)
+    lift(sg[2], to); lift(sg[3], to);
   });
-  if (!cut.length) return null;
+  if (!cut.length && !soft.length) return null;
   const outline = new THREE.BufferGeometry(); outline.setAttribute('position', pos); outline.setIndex(keep);
-  const lines = new THREE.BufferGeometry(); lines.setAttribute('position', new THREE.Float32BufferAttribute(cut, 3));
-  return {outline, lines};
+  const mk = a => { if (!a.length) return null; const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(a, 3)); return g; };
+  return {outline, lines: mk(cut), soft: mk(soft)};
 }
 const cutsShown = x => x.meshes.length && x.meshes[0].material.opacity > .9 && (iso !== null || x === sel || x === solo || x === tipSel);
 function makeObject(rec, isPart){
@@ -1660,8 +1658,10 @@ function makeObject(rec, isPart){
       else if (MATS[s.m] && MATS[s.m].tape) continue;   // (v62d) edge tape: no lines - the strip's own creases drew black lines
       else eg = outline(g);
       const cut = isPart ? cutLines(eg, g.boundingBox) : null;
-      if (cut){ eg = cut.outline; const c = new THREE.LineSegments(cut.lines, new THREE.LineBasicMaterial({color: CUT_INK, transparent: true, clippingPlanes: CLIP}));
-        c.userData.mi = s.m; c.userData.cut = true; scene.add(c); edges.push(c); }
+      if (cut){ eg = cut.outline;
+        for (const [g2, kind] of [[cut.lines, true], [cut.soft, 'soft']]){ if (!g2) continue;
+          const c = new THREE.LineSegments(g2, new THREE.LineBasicMaterial({color: CUT_INK, transparent: true, clippingPlanes: CLIP}));
+          c.userData.mi = s.m; c.userData.cut = kind; scene.add(c); edges.push(c); } }
       const e = new THREE.LineSegments(eg, new THREE.LineBasicMaterial({transparent:true, clippingPlanes: CLIP}));
       e.userData.mi = s.m;
       scene.add(e); edges.push(e); }
@@ -1954,7 +1954,7 @@ function setLook(x, opacity, edgeColor, edgeOpacity, tint){
     m.renderOrder = opacity > .9 ? 2 : 1;
   }
   for (const e of x.edges){
-    if (e.userData.cut && cutsShown(x)){ e.material.color.setHex(CUT_INK); e.material.opacity = 1; e.material.visible = true; continue; }
+    if (e.userData.cut && cutsShown(x)){ e.material.color.setHex(CUT_INK); e.material.opacity = e.userData.cut === 'soft' ? SOFT_CUT : 1; e.material.visible = true; continue; }
     e.material.color.copy(edgeColor); e.material.opacity = edgeOpacity; e.material.visible = edgeOpacity > 0; }   // (else drawn like the outline)
 }
 function paint(){
