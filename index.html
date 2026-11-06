@@ -1586,23 +1586,58 @@ function outline(g){
 // don't break up into dashes against it. A segment is the board's outline when both ends sit on the same side of
 // its box; everything else (cut-out edges, hole walls, route lines) is machining.
 const CUT_INK = 0x111111, CUT_LIFT = 0.4;
+// (v66, Mason: "black lines more prominent when a cabinet is isolated") only real cut-outs, grooves and routes go
+// black. Two kinds of lines are drawn like the outline instead: an edge profile (a door's eased / rounded edge: a
+// long line running beside an edge within CUT_EDGE mm) and small bores (dowel / cam / pin holes: a ring of lines
+// no bigger than CUT_BORE mm) - in a close-up they made dark double lines round every door and dotted rows along
+// every top.
+const CUT_EDGE = 8, CUT_BORE = 16, CUT_GAP = 1.5;
 function cutLines(eg, box){
   const pos = eg.attributes.position, arr = pos.array, idx = eg.index, n = idx ? idx.count : pos.count;
   const lo = [box.min.x, box.min.y, box.min.z], hi = [box.max.x, box.max.y, box.max.z], ext = [0, 1, 2].map(a => hi[a] - lo[a]);
   const t = ext.indexOf(Math.min(...ext));
   if (ext[t] < 3 || ext[t] > 60 || n < 2) return null;                       // (boards only)
   const inPlane = [0, 1, 2].filter(a => a !== t), on = (v, x) => Math.abs(v - x) < 0.3;
-  const keep = [], cut = [], A = [0, 0, 0], B = [0, 0, 0];
+  const keep = [], segs = [], A = [0, 0, 0], B = [0, 0, 0];
   for (let k = 0; k + 1 < n; k += 2){
     const i = idx ? idx.getX(k) : k, j = idx ? idx.getX(k + 1) : k + 1;
     for (let a = 0; a < 3; a++){ A[a] = arr[i * 3 + a]; B[a] = arr[j * 3 + a]; }
     const side = inPlane.some(a => (on(A[a], lo[a]) && on(B[a], lo[a])) || (on(A[a], hi[a]) && on(B[a], hi[a])));
     if (side){ keep.push(i, j); continue; }
-    for (const P of [A, B]){                                                  // lift off the face it lies on
+    // an edge profile: runs along one in-plane axis, close beside an edge, for a good length
+    const along = inPlane.find(a => Math.abs(A[a] - B[a]) > 50), across = inPlane.find(a => a !== along);
+    if (along !== undefined && Math.abs(A[across] - B[across]) < 0.5 &&
+        Math.min(Math.abs(A[across] - lo[across]), Math.abs(A[across] - hi[across])) <= CUT_EDGE){ keep.push(i, j); continue; }
+    // (and where it turns a corner: a short piece within CUT_EDGE of both edges of a corner)
+    const nearSide = (a, P) => Math.min(Math.abs(P[a] - lo[a]), Math.abs(P[a] - hi[a])) <= CUT_EDGE;
+    if (Math.hypot(A[0] - B[0], A[1] - B[1], A[2] - B[2]) <= CUT_EDGE && inPlane.every(a => nearSide(a, A) && nearSide(a, B))){ keep.push(i, j); continue; }
+    segs.push([i, j, A.slice(), B.slice()]);
+  }
+  // small bores: groups of lines (joined end to end, gaps up to CUT_GAP closed - CV's curves come in loose pieces)
+  // no bigger than CUT_BORE in both in-plane directions. A cut-out's corners join up with the rest of it.
+  const par = segs.map((_, k) => k), find = k => { while (par[k] !== k){ par[k] = par[par[k]]; k = par[k]; } return k; };
+  const grid = new Map(), cell = v => Math.floor(v / CUT_GAP);
+  segs.forEach((sg, k) => { for (const P of [sg[2], sg[3]]){
+    const c = [cell(P[0]), cell(P[1]), cell(P[2])];
+    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (let dz = -1; dz <= 1; dz++){
+      const l = grid.get((c[0] + dx) + ',' + (c[1] + dy) + ',' + (c[2] + dz)); if (!l) continue;
+      for (const [m, Q] of l) if (Math.hypot(P[0] - Q[0], P[1] - Q[1], P[2] - Q[2]) <= CUT_GAP) par[find(k)] = find(m);
+    }
+    const q = c.join(','); if (!grid.has(q)) grid.set(q, []); grid.get(q).push([k, P]);
+  } });
+  const span = new Map();
+  segs.forEach((sg, k) => { const r = find(k), b = span.get(r) || [Infinity, -Infinity, Infinity, -Infinity];
+    for (const P of [sg[2], sg[3]]){ b[0] = Math.min(b[0], P[inPlane[0]]); b[1] = Math.max(b[1], P[inPlane[0]]); b[2] = Math.min(b[2], P[inPlane[1]]); b[3] = Math.max(b[3], P[inPlane[1]]); }
+    span.set(r, b); });
+  const cut = [];
+  segs.forEach((sg, k) => {
+    const b = span.get(find(k));
+    if (b[1] - b[0] <= CUT_BORE && b[3] - b[2] <= CUT_BORE){ keep.push(sg[0], sg[1]); return; }
+    for (const P of [sg[2], sg[3]]){                                          // lift off the face it lies on
       const q = P.slice(); if (on(q[t], lo[t])) q[t] -= CUT_LIFT; else if (on(q[t], hi[t])) q[t] += CUT_LIFT;
       cut.push(q[0], q[1], q[2]);
     }
-  }
+  });
   if (!cut.length) return null;
   const outline = new THREE.BufferGeometry(); outline.setAttribute('position', pos); outline.setIndex(keep);
   const lines = new THREE.BufferGeometry(); lines.setAttribute('position', new THREE.Float32BufferAttribute(cut, 3));
@@ -2580,7 +2615,9 @@ function show(x){
     setSolid(false);
   }
   if (hiddenParts.size) applyVisibility();     // (a scanned part shows even when it's on the hidden list)
-  updateCard(); paint(); reframe();
+  // (v66, Mason: tapping a cabinet again to let it go jumped back to the whole-job view) only showing a part moves the
+  // camera to it; letting a selection go leaves the view where you put it
+  updateCard(); paint(); if (sel) reframe();
 }
 // whole job: a tap picks a cabinet (never a single part) and shows its number, name and size
 function showCab(g){
