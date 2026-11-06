@@ -1,6 +1,27 @@
 {
  "jobs": [
   {
+   "key": "j1122-esplanade",
+   "name": "J1122 Esplanade",
+   "number": "J1122",
+   "room": "Kitchen",
+   "cabs": 31,
+   "parts": 238,
+   "updated": "2026-11-06 12:01",
+   "docs": [
+    {
+     "t": "assembly",
+     "name": "J1122 - 235 Esplanade - Kitchen-Assembly",
+     "f": "docs/j1122-esplanade/j1122-235-esplanade-kitchen-assembly.pdf"
+    },
+    {
+     "t": "shop",
+     "name": "J1122 - 235 Esplanade - Kitchen-Final",
+     "f": "docs/j1122-esplanade/j1122-235-esplanade-kitchen-final.pdf"
+    }
+   ]
+  },
+  {
    "key": "j1121-187-page-st-bed-3-robe",
    "name": "J1121 - 187 Page St - Bed 3 Robe",
    "number": "J1121",
