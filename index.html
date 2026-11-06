@@ -1261,7 +1261,7 @@ async function drawSettings(jobs){
 }
 (async () => {
   if (!RAWJ) return home();
-  const load = async k => { try { const r = await fetch('jobs/' + encodeURIComponent(k) + '.json'); if (r.ok){ const j = await r.json(); JOB_FETCHED = performance.now(); return j; } } catch (_) {} return null; };
+  const load = async k => { try { const r = await fetch('jobs/' + encodeURIComponent(k) + '.json', {cache: 'no-cache'}); if (r.ok){ const j = await r.json(); JOB_FETCHED = performance.now(); return j; } } catch (_) {} return null; };
   // 1. the full CV job name (sticker QRs)
   let job = null;
   if (!(NUM && slug(RAWJ) === slug(NUM[1])) && (job = await load(slug(RAWJ)))) return job.rooms ? openRoom(job) : start(job);
@@ -1289,7 +1289,7 @@ async function openRoom(list){
   // the sticker's own job name picks the room
   if (hits.length > 1 && hits.some(r => r.cv)) hits = hits.filter(r => (r.cv || '').trim().toLowerCase() === RAWJ.toLowerCase());
   if (hits.length === 1){
-    const r = await fetch('jobs/' + encodeURIComponent(hits[0].key) + '.json').catch(() => null);
+    const r = await fetch('jobs/' + encodeURIComponent(hits[0].key) + '.json', {cache: 'no-cache'}).catch(() => null);
     if (r && r.ok) return start(await r.json());
   }
   return home((list.job.match(/J\d{3,}/i) || [list.job])[0]);      // (the job's folder)
