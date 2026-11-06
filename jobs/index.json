@@ -5,9 +5,9 @@
    "name": "J1122 Esplanade",
    "number": "J1122",
    "room": "Kitchen",
-   "cabs": 31,
-   "parts": 238,
-   "updated": "2026-11-06 12:01",
+   "cabs": 32,
+   "parts": 330,
+   "updated": "2026-11-06 14:21",
    "docs": [
     {
      "t": "assembly",
@@ -18,6 +18,33 @@
      "t": "shop",
      "name": "J1122 - 235 Esplanade - Kitchen-Final",
      "f": "docs/j1122-esplanade/j1122-235-esplanade-kitchen-final.pdf"
+    }
+   ]
+  },
+  {
+   "key": "j1122-235-esplanade-master-wir",
+   "name": "J1122 - 235 Esplanade - Master WIR",
+   "number": "J1122",
+   "room": "Master WIR",
+   "cabs": 14,
+   "parts": 148,
+   "updated": "2026-11-06 14:21",
+   "parent": "j1122-235-esplanade",
+   "docs": [
+    {
+     "t": "assembly",
+     "name": "J1122 - 235 Esplanade - Robes-Assembly",
+     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-robes-assembly.pdf"
+    },
+    {
+     "t": "shop",
+     "name": "J1122 - 235 Esplanade - Robes-Final",
+     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-robes-final.pdf"
+    },
+    {
+     "t": "hardware",
+     "name": "J1122 - 235 Esplanade - Robes-Hardware",
+     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-robes-hardware.pdf"
     }
    ]
   },
@@ -170,33 +197,6 @@
      "t": "shop",
      "name": "Final - J936 - Barry St - Basement Bar",
      "f": "docs/j936-barry-st-basement/final-j936-barry-st-basement-bar.pdf"
-    }
-   ]
-  },
-  {
-   "key": "j1122-235-esplanade-master-wir",
-   "name": "J1122 - 235 Esplanade - Master WIR",
-   "number": "J1122",
-   "room": "Master WIR",
-   "cabs": 14,
-   "parts": 148,
-   "updated": "2026-10-31 19:19",
-   "parent": "j1122-235-esplanade",
-   "docs": [
-    {
-     "t": "assembly",
-     "name": "J1122 - 235 Esplanade - Robes-Assembly",
-     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-robes-assembly.pdf"
-    },
-    {
-     "t": "shop",
-     "name": "J1122 - 235 Esplanade - Robes-Final",
-     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-robes-final.pdf"
-    },
-    {
-     "t": "hardware",
-     "name": "J1122 - 235 Esplanade - Robes-Hardware",
-     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-robes-hardware.pdf"
     }
    ]
   },
