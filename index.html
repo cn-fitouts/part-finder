@@ -3068,6 +3068,71 @@ renderer.domElement.addEventListener('pointerup', e => {
 });
 renderer.domElement.addEventListener('dblclick', e => e.preventDefault());
 
+// ---- moving round a big job (v65, Mason: hard to get to the island drawers). three.js zooms towards the middle of
+// the screen and turns round a fixed centre, so anything off to the side runs away as you zoom and swings far off when
+// you turn. Here the mouse wheel / trackpad / pinch zooms TOWARDS WHAT'S UNDER THE CURSOR OR FINGERS (the turning
+// centre comes along), and a turn pivots at the depth of what you put your finger on.
+controls.enableZoom = false;                     // (zoom is done below; two-finger slide still pans)
+controls.mouseButtons.MIDDLE = THREE.MOUSE.PAN;   // (middle button: was zoom, now drags the view like the right button)
+const ZOOM_NEAR = 120;                           // mm: never closer than this to the point you zoom into
+function viewTargets(){ return parts.concat(hardware.filter(h => !WALLK(h.p.k) && h.p.k !== 'room')).flatMap(x => x.meshes.filter(m => m.visible)); }
+function pointUnder(cx, cy){                     // the model under a screen point, else that ray at the turning centre's depth
+  const r = renderer.domElement.getBoundingClientRect();
+  ray.setFromCamera({x: (cx - r.left) / r.width * 2 - 1, y: -(cy - r.top) / r.height * 2 + 1}, camera);
+  const hit = ray.intersectObjects(viewTargets())[0];
+  if (hit) return {p: hit.point.clone(), hit: true};
+  const fwd = camera.getWorldDirection(new THREE.Vector3()), depth = controls.target.clone().sub(camera.position).dot(fwd);
+  const k = ray.ray.direction.dot(fwd);
+  return {p: ray.ray.origin.clone().addScaledVector(ray.ray.direction, k > 1e-3 ? depth / k : depth), hit: false};
+}
+function zoomAt(p, s){                           // s < 1 closer: camera and turning centre both slide towards p
+  const cam = camera.position, tg = controls.target, d = cam.distanceTo(p);
+  if (s < 1 && d * s < ZOOM_NEAR) s = Math.min(1, ZOOM_NEAR / Math.max(d, 1e-6));
+  if (s > 1 && cam.distanceTo(tg) * s > 40000) return;
+  if (Math.abs(s - 1) < 1e-4) return;
+  controls.dispatchEvent({type: 'start'});
+  const was = cam.clone();
+  cam.sub(p).multiplyScalar(s).add(p);
+  if (snapOn){                                   // square-on view: the centre stays at the subject's depth (the cut-away
+    const fwd = camera.getWorldDirection(new THREE.Vector3()), mv = cam.clone().sub(was);   // in front of it keys off it)
+    tg.add(mv.addScaledVector(fwd, -mv.dot(fwd)));
+  } else tg.sub(p).multiplyScalar(s).add(p);
+  controls.update(); controls.dispatchEvent({type: 'change'}); controls.dispatchEvent({type: 'end'});
+  markDirty(200);
+}
+let wheelAnchor = null;
+renderer.domElement.addEventListener('wheel', e => {
+  e.preventDefault();
+  const now = performance.now();
+  if (!wheelAnchor || now - wheelAnchor.t > 250 || Math.hypot(e.clientX - wheelAnchor.x, e.clientY - wheelAnchor.y) > 6)
+    wheelAnchor = {x: e.clientX, y: e.clientY, p: pointUnder(e.clientX, e.clientY).p};   // (one aim per wheel spin: the model is only hit-tested once)
+  wheelAnchor.t = now;
+  const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1);
+  zoomAt(wheelAnchor.p, Math.exp(Math.max(-300, Math.min(300, dy)) * (e.ctrlKey ? 0.006 : 0.0012)));   // (ctrl = trackpad pinch: small steps)
+}, {passive: false});
+let camPinch = null;                                // two fingers: zoom towards the point between them (sliding them pans)
+renderer.domElement.addEventListener('touchstart', e => {
+  if (e.touches.length === 2){
+    const [a, b] = e.touches, mx = (a.clientX + b.clientX) / 2, my = (a.clientY + b.clientY) / 2;
+    camPinch = {d: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY), p: pointUnder(mx, my).p};
+  } else camPinch = null;
+}, {passive: true});
+renderer.domElement.addEventListener('touchmove', e => {
+  if (!camPinch || e.touches.length !== 2) return;
+  const [a, b] = e.touches, d = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+  if (d > 10 && camPinch.d > 10) zoomAt(camPinch.p, camPinch.d / d);
+  camPinch.d = d;
+}, {passive: true});
+renderer.domElement.addEventListener('touchend', e => { if (e.touches.length < 2) camPinch = null; }, {passive: true});
+// a turn pivots at the depth of what you start it on (the view doesn't jump: the centre stays in the middle of the
+// screen, only its distance changes), so turning round the island drawers keeps them in front of you
+renderer.domElement.addEventListener('pointerdown', e => {
+  if (!controls.enableRotate || snapOn || (e.pointerType === 'mouse' && e.button !== 0) || (e.pointerType === 'touch' && !e.isPrimary)) return;
+  const u = pointUnder(e.clientX, e.clientY); if (!u.hit) return;
+  const fwd = camera.getWorldDirection(new THREE.Vector3()), depth = u.p.clone().sub(camera.position).dot(fwd);
+  if (depth > ZOOM_NEAR) controls.target.copy(camera.position).addScaledVector(fwd, depth);
+});
+
 // ---- pick several cabinets and isolate them together ----
 function updatePick(){
   $('vGo').hidden = !picking;
