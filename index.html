@@ -261,6 +261,12 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
 .roomnav a:hover{border-color:var(--cyan);color:var(--cyan)}
 .roomnav a[aria-disabled="true"]{opacity:.3;pointer-events:none}
 .roomnav span{min-width:120px;text-align:center}
+.roomsel{font:700 15px var(--display);color:#fff;background:#0b1114;border:1px solid #2b3a42;border-radius:999px;padding:0 34px 0 16px;min-height:40px;max-width:100%;cursor:pointer;
+  appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,#9fd8ee 50%),linear-gradient(135deg,#9fd8ee 50%,transparent 50%);
+  background-position:calc(100% - 18px) 52%,calc(100% - 12px) 52%;background-size:6px 6px,6px 6px;background-repeat:no-repeat;text-align:center;text-align-last:center}
+.roomsel:focus{outline:2px solid var(--cyan);outline-offset:1px}
+.isomode #docBtns,.isomode #room,.roomnav [hidden]{display:none!important}
+.stripback{border:1px solid var(--cyan);border-radius:999px;min-height:40px;padding:0 16px!important;font:700 14px var(--display);cursor:pointer;white-space:nowrap}
 /* side lists: cabinets of the room (right), parts of an isolated cabinet (left) */
 #work{flex:1;min-height:0;display:flex}
 #work #stage{flex:1;min-width:0}
@@ -546,6 +552,9 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
   .roomnav{order:3;flex:1 1 100%;justify-content:center;gap:8px;font-size:15px;min-height:44px}
   .roomnav a{width:44px;height:44px;border-radius:999px;border:1px solid var(--ph-line);background:rgba(255,255,255,.05)}
   .roomnav span{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .roomsel{flex:1;min-height:44px;font-size:15px;border-color:var(--ph-line);background-color:rgba(255,255,255,.05)}
+  .stripback{min-height:44px;flex:none}
+  .isomode .strip .right{flex:1 1 auto;justify-content:flex-end}
   .scanbtn{flex:none;min-height:44px;padding:0 18px;font-size:14px;letter-spacing:.04em}
   .docbtns{flex:0 1 auto;min-width:0;margin:0;gap:6px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
   .docbtns::-webkit-scrollbar{display:none}
@@ -667,7 +676,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--display);font-size:1
 }
 </style>
 </head><body>
-<div class="strip"><span><a href="./" id="backLink" title="All jobs"><img class="brandlogo" src="logo-mark.png" alt="">&lsaquo; Jobs</a> · <b id="job">–</b><span id="room"></span></span><nav class="roomnav" id="roomNav" hidden aria-label="Rooms in this job"><a id="roomPrev" aria-label="Previous room">&lsaquo;</a><span id="roomName"></span><a id="roomNext" aria-label="Next room">&rsaquo;</a></nav><span class="right"><span class="docbtns" id="docBtns" hidden role="group" aria-label="Job PDFs"><button type="button" data-doc="shop" aria-pressed="false">Shop drawings</button><button type="button" data-doc="assembly" aria-pressed="false">Assembly</button><button type="button" data-doc="hardware" aria-pressed="false">Hardware</button></span><button type="button" class="scanbtn" data-scan>Scan</button><span id="count"></span></span></div>
+<div class="strip"><span><a href="./" id="backLink" title="All jobs"><img class="brandlogo" src="logo-mark.png" alt="">&lsaquo; Jobs</a> · <b id="job">–</b><span id="room"></span></span><nav class="roomnav" id="roomNav" hidden aria-label="Rooms in this job"><a id="roomPrev" role="button" tabindex="0" hidden aria-label="Previous cabinet">&lsaquo;</a><select id="roomSel" class="roomsel" hidden aria-label="Room"></select><span id="roomName" hidden></span><a id="roomNext" role="button" tabindex="0" hidden aria-label="Next cabinet">&rsaquo;</a></nav><span class="right"><button type="button" class="vback stripback" id="stripBack" hidden>&lsaquo; Back to job</button><span class="docbtns" id="docBtns" hidden role="group" aria-label="Job PDFs"><button type="button" data-doc="shop" aria-pressed="false">Shop drawings</button><button type="button" data-doc="assembly" aria-pressed="false">Assembly</button><button type="button" data-doc="hardware" aria-pressed="false">Hardware</button></span><button type="button" class="scanbtn" data-scan>Scan</button><span id="count"></span></span></div>
 <main class="home" id="home" hidden>
   <div class="in">
     <nav class="crumbs" id="crumbs" aria-label="Where you are" hidden></nav>
@@ -2716,6 +2725,7 @@ function isolate(g){
   elevVis();
   sectionScope(on);
   sideLists();
+  topNav();
   requestAnimationFrame(() => { resize(); reframe(); });
 }
 $('vExplode').onclick = () => { exTarget = exTarget ? 0 : 1; $('vExplode').setAttribute('aria-pressed', !!exTarget);
@@ -2733,6 +2743,32 @@ function stepCab(d){
   for (const mv of movers) mv.target = 0;
   isolate(order[(i + d + order.length) % order.length]);
 }
+// the top bar (v67, Mason): the whole job shows the room drop-down; inside a cabinet (or one of its parts) it becomes
+// ‹ previous / next cabinet ›, and "Back to job" moves up there in place of the PDF buttons - the bottom bar keeps
+// Explode / Dims (and a part's ‹ Prev / Next ›)
+let roomList = false;
+function topNav(){
+  const inCab = iso !== null, multi = isoGs.size > 1;
+  $('roomSel').hidden = inCab || !roomList;
+  $('roomName').hidden = !inCab;
+  $('roomPrev').hidden = $('roomNext').hidden = !inCab || multi;
+  $('roomNav').hidden = !(inCab || roomList);
+  document.body.classList.toggle('isomode', inCab);
+  if (inCab){
+    const c = CABS[iso] || {}, no = cabNoOf(iso);
+    $('roomName').textContent = multi ? $('room').textContent : (no ? 'Cab ' + no : 'Cabinet') + (c.n ? ' · ' + c.n : '');
+  }
+  $('stripBack').hidden = !inCab;
+  $('stripBack').textContent = solo ? '‹ Back to cabinet' : '‹ Back to job';
+  $('vBack').hidden = true;                       // (moved to the top bar)
+  $('vPrev').hidden = $('vNext').hidden = !solo;  // (the bottom arrows only step a part's cabinet-mates now)
+}
+const cabStep = d => { if (solo) soloPart(null); stepCab(d); };
+for (const [id, d] of [['roomPrev', -1], ['roomNext', 1]]){
+  $(id).onclick = e => { e.preventDefault(); cabStep(d); };
+  $(id).onkeydown = e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); cabStep(d); } };
+}
+$('stripBack').onclick = () => $('vBack').onclick();
 $('vPrev').onclick = () => solo ? stepSolo(-1) : stepCab(-1);
 $('vNext').onclick = () => solo ? stepSolo(1) : stepCab(1);
 $('vBack').onclick = () => { if (solo){ soloPart(null); return; } for (const mv of movers) mv.target = 0; isolate(null); };
@@ -2744,6 +2780,7 @@ function soloPart(x){
   if (dims) dims.visible = !solo && dimsOn;
   $('vPrev').hidden = $('vNext').hidden = iso === null || (!solo && isoGs.size > 1);
   $('vBack').textContent = solo ? '‹ Back to cabinet' : '‹ Back to job';
+  topNav();
   showTip(solo); updateLabels(); hintText(); paint(); sideLists(); reframe();
 }
 function soloOrder(){ return parts.filter(x => x.p.g === solo.p.g).sort((a, b) => (parseInt(a.p.id) || 1e9) - (parseInt(b.p.id) || 1e9)); }
@@ -3844,10 +3881,14 @@ new ResizeObserver(() => { if (docPdf && !$('docView').hidden){ clearTimeout(doc
     const f = buildFolders(jobs).get(FOLDER) || buildFolders(jobs, null, true).get(FOLDER);
     if (f && f.entries.length > 1){
       $('backLink').href = '?f=' + encodeURIComponent(FOLDER); $('backLink').lastChild.textContent = '‹ ' + (f.number || 'Job');
-      // rooms of the job: arrows either side of the room's name
-      const i = f.entries.findIndex(x => x.key === ENTRY), go = d => '?j=' + encodeURIComponent(f.entries[(i + d + f.entries.length) % f.entries.length].key);
-      if (i >= 0){ $('roomName').textContent = entryShort(f.entries[i], f) + ' · ' + (i + 1) + '/' + f.entries.length;
-        $('roomPrev').href = go(-1); $('roomNext').href = go(1); $('roomNav').hidden = false; }
+      // rooms of the job: a drop-down (v67, Mason: the left / right arrows were too easy to hit by accident)
+      const i = f.entries.findIndex(x => x.key === ENTRY);
+      if (i >= 0){
+        const sel = $('roomSel'); sel.innerHTML = '';
+        f.entries.forEach((x, k) => { const o = document.createElement('option'); o.value = x.key; o.textContent = entryShort(x, f) + ' · ' + (k + 1) + '/' + f.entries.length; sel.appendChild(o); });
+        sel.value = ENTRY; sel.onchange = () => { if (sel.value !== ENTRY) location.assign('?j=' + encodeURIComponent(sel.value)); };
+        roomList = true; topNav();
+      }
     }
   }
   jobDocs = (e && e.docs) || []; loadDocs();
