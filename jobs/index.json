@@ -1,6 +1,32 @@
 {
  "jobs": [
   {
+   "key": "j1003-howitt",
+   "name": "J1003 - Howitt",
+   "number": "J1003",
+   "room": "Alfresco",
+   "cabs": 8,
+   "parts": 52,
+   "updated": "2026-11-10 09:00",
+   "docs": [
+    {
+     "t": "assembly",
+     "name": "J1003 - Howitt Alfresco - Assembly",
+     "f": "docs/j1003-howitt/j1003-howitt-alfresco-assembly.pdf"
+    },
+    {
+     "t": "shop",
+     "name": "J1003 - Howitt Alfresco - Final",
+     "f": "docs/j1003-howitt/j1003-howitt-alfresco-final.pdf"
+    },
+    {
+     "t": "hardware",
+     "name": "J1003 - Howitt Alfresco - Hardware",
+     "f": "docs/j1003-howitt/j1003-howitt-alfresco-hardware.pdf"
+    }
+   ]
+  },
+  {
    "key": "fat-ass-alfresco",
    "name": "Fat Ass Alfresco",
    "number": "",
