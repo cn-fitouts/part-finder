@@ -1,6 +1,27 @@
 {
  "jobs": [
   {
+   "key": "fat-ass-alfresco",
+   "name": "Fat Ass Alfresco",
+   "number": "",
+   "room": "Alfresco",
+   "cabs": 12,
+   "parts": 56,
+   "updated": "2026-11-09 23:22",
+   "docs": [
+    {
+     "t": "assembly",
+     "name": "Fat Ass Alfresco - Assembly Sheets",
+     "f": "docs/fat-ass-alfresco/fat-ass-alfresco-assembly-sheets.pdf"
+    },
+    {
+     "t": "shop",
+     "name": "Final - Fat Ass Alfresco",
+     "f": "docs/fat-ass-alfresco/final-fat-ass-alfresco.pdf"
+    }
+   ]
+  },
+  {
    "key": "j936-barry-st-basement-wine-cellar",
    "name": "J936 - Barry St Basement - Wine Cellar",
    "number": "J936",
@@ -1272,27 +1293,6 @@
      "t": "shop",
      "name": "J1022 - Moorehouse - Vanities-Production",
      "f": "docs/j1022-moorehouse/j1022-moorehouse-vanities-production.pdf"
-    }
-   ]
-  },
-  {
-   "key": "fat-ass-alfresco",
-   "name": "Fat Ass Alfresco",
-   "number": "",
-   "room": "Alfresco",
-   "cabs": 10,
-   "parts": 62,
-   "updated": "2026-11-08 12:00",
-   "docs": [
-    {
-     "t": "assembly",
-     "name": "Fat Ass Alfresco - Assembly Sheets",
-     "f": "docs/fat-ass-alfresco/fat-ass-alfresco-assembly-sheets.pdf"
-    },
-    {
-     "t": "shop",
-     "name": "Final - Fat Ass Alfresco",
-     "f": "docs/fat-ass-alfresco/final-fat-ass-alfresco.pdf"
     }
    ]
   },
