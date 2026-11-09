@@ -1074,7 +1074,7 @@ function drawAll(jobs){
     const many = f.entries.length > 1, e0 = f.entries[0], n = DASH.counts[f.id] || 0;
     const cabs = f.entries.reduce((s, e) => s + (e.cabs || 0), 0), partsN = f.entries.reduce((s, e) => s + (e.parts || 0), 0);
     const rooms = many ? f.entries.map(e => entryShort(e, f)) : [e0.room].filter(Boolean);
-    const href = many ? '?f=' + encodeURIComponent(f.id) : '?j=' + encodeURIComponent(e0.key);
+    const href = '?f=' + encodeURIComponent(f.id);   // (v70, Mason: a one-room job opens its job page too - Updates / Mark for refresh, notes)
     return '<li><a class="jcard' + (many ? ' folder' : '') + '" href="' + esc(href) + '">' +
       '<span class="no' + (f.number ? '' : ' none') + '">' + (many ? '<i class="fico" aria-hidden="true"></i>' : '') + esc(f.number || 'JOB') + '</span>' +
       '<span class="nm">' + esc(folderTitle(f)) + '</span>' +
@@ -3881,8 +3881,10 @@ new ResizeObserver(() => { if (docPdf && !$('docView').hidden){ clearTimeout(doc
   if (e){
     FOLDER = folderOf(e);
     const f = buildFolders(jobs).get(FOLDER) || buildFolders(jobs, null, true).get(FOLDER);
-    if (f && f.entries.length > 1){
+    if (f){                                            // (v70: a one-room job has its job page too)
       $('backLink').href = '?f=' + encodeURIComponent(FOLDER); $('backLink').lastChild.textContent = '‹ ' + (f.number || 'Job');
+    }
+    if (f && f.entries.length > 1){
       // rooms of the job: a drop-down (v67, Mason: the left / right arrows were too easy to hit by accident)
       const i = f.entries.findIndex(x => x.key === ENTRY);
       if (i >= 0){
