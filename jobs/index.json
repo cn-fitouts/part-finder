@@ -1,6 +1,90 @@
 {
  "jobs": [
   {
+   "key": "j1122-235-esplanade-bathroom",
+   "name": "J1122 - 235 Esplanade - Bathroom",
+   "number": "J1122",
+   "room": "Bathroom",
+   "cabs": 6,
+   "parts": 51,
+   "updated": "2026-11-11 09:01",
+   "parent": "j1122-235-esplanade",
+   "docs": [
+    {
+     "t": "assembly",
+     "name": "J1122 - 235 Esplanade - Robes-Assembly",
+     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-robes-assembly.pdf"
+    },
+    {
+     "t": "shop",
+     "name": "J1122 - 235 Esplanade - Robes-Final",
+     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-robes-final.pdf"
+    },
+    {
+     "t": "hardware",
+     "name": "J1122 - 235 Esplanade - Robes-Hardware",
+     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-robes-hardware.pdf"
+    },
+    {
+     "t": "assembly",
+     "name": "J1122 - 235 Esplanade - Vanities - Assembly",
+     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-vanities-assembly.pdf"
+    },
+    {
+     "t": "shop",
+     "name": "J1122 - 235 Esplanade - Vanities - Final",
+     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-vanities-final.pdf"
+    },
+    {
+     "t": "hardware",
+     "name": "J1122 - 235 Esplanade - Vanities - Hardware",
+     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-vanities-hardware.pdf"
+    }
+   ]
+  },
+  {
+   "key": "j1122-235-esplanade-master-ensuite",
+   "name": "J1122 - 235 Esplanade - Master Ensuite",
+   "number": "J1122",
+   "room": "Master Ensuite",
+   "cabs": 6,
+   "parts": 52,
+   "updated": "2026-11-11 09:01",
+   "parent": "j1122-235-esplanade",
+   "docs": [
+    {
+     "t": "assembly",
+     "name": "J1122 - 235 Esplanade - Robes-Assembly",
+     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-robes-assembly.pdf"
+    },
+    {
+     "t": "shop",
+     "name": "J1122 - 235 Esplanade - Robes-Final",
+     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-robes-final.pdf"
+    },
+    {
+     "t": "hardware",
+     "name": "J1122 - 235 Esplanade - Robes-Hardware",
+     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-robes-hardware.pdf"
+    },
+    {
+     "t": "assembly",
+     "name": "J1122 - 235 Esplanade - Vanities - Assembly",
+     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-vanities-assembly.pdf"
+    },
+    {
+     "t": "shop",
+     "name": "J1122 - 235 Esplanade - Vanities - Final",
+     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-vanities-final.pdf"
+    },
+    {
+     "t": "hardware",
+     "name": "J1122 - 235 Esplanade - Vanities - Hardware",
+     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-vanities-hardware.pdf"
+    }
+   ]
+  },
+  {
    "key": "j1003-howitt",
    "name": "J1003 - Howitt",
    "number": "J1003",
@@ -155,6 +239,21 @@
      "t": "hardware",
      "name": "J1122 - 235 Esplanade - Robes-Hardware",
      "f": "docs/j1122-235-esplanade/j1122-235-esplanade-robes-hardware.pdf"
+    },
+    {
+     "t": "assembly",
+     "name": "J1122 - 235 Esplanade - Vanities - Assembly",
+     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-vanities-assembly.pdf"
+    },
+    {
+     "t": "shop",
+     "name": "J1122 - 235 Esplanade - Vanities - Final",
+     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-vanities-final.pdf"
+    },
+    {
+     "t": "hardware",
+     "name": "J1122 - 235 Esplanade - Vanities - Hardware",
+     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-vanities-hardware.pdf"
     }
    ]
   },
@@ -182,6 +281,21 @@
      "t": "hardware",
      "name": "J1122 - 235 Esplanade - Robes-Hardware",
      "f": "docs/j1122-235-esplanade/j1122-235-esplanade-robes-hardware.pdf"
+    },
+    {
+     "t": "assembly",
+     "name": "J1122 - 235 Esplanade - Vanities - Assembly",
+     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-vanities-assembly.pdf"
+    },
+    {
+     "t": "shop",
+     "name": "J1122 - 235 Esplanade - Vanities - Final",
+     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-vanities-final.pdf"
+    },
+    {
+     "t": "hardware",
+     "name": "J1122 - 235 Esplanade - Vanities - Hardware",
+     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-vanities-hardware.pdf"
     }
    ]
   },
@@ -209,6 +323,21 @@
      "t": "hardware",
      "name": "J1122 - 235 Esplanade - Robes-Hardware",
      "f": "docs/j1122-235-esplanade/j1122-235-esplanade-robes-hardware.pdf"
+    },
+    {
+     "t": "assembly",
+     "name": "J1122 - 235 Esplanade - Vanities - Assembly",
+     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-vanities-assembly.pdf"
+    },
+    {
+     "t": "shop",
+     "name": "J1122 - 235 Esplanade - Vanities - Final",
+     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-vanities-final.pdf"
+    },
+    {
+     "t": "hardware",
+     "name": "J1122 - 235 Esplanade - Vanities - Hardware",
+     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-vanities-hardware.pdf"
     }
    ]
   },
@@ -1367,6 +1496,21 @@
      "t": "hardware",
      "name": "J1122 - 235 Esplanade - Robes-Hardware",
      "f": "docs/j1122-235-esplanade/j1122-235-esplanade-robes-hardware.pdf"
+    },
+    {
+     "t": "assembly",
+     "name": "J1122 - 235 Esplanade - Vanities - Assembly",
+     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-vanities-assembly.pdf"
+    },
+    {
+     "t": "shop",
+     "name": "J1122 - 235 Esplanade - Vanities - Final",
+     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-vanities-final.pdf"
+    },
+    {
+     "t": "hardware",
+     "name": "J1122 - 235 Esplanade - Vanities - Hardware",
+     "f": "docs/j1122-235-esplanade/j1122-235-esplanade-vanities-hardware.pdf"
     }
    ]
   },

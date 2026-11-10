@@ -2,6 +2,11 @@
  "job": "J1122 - 235 Esplanade",
  "rooms": [
   {
+   "room": "Bathroom",
+   "key": "j1122-235-esplanade-bathroom",
+   "ids": "69-101,111-130"
+  },
+  {
    "room": "Bed 2 Robe",
    "key": "j1122-235-esplanade-bed-2-robe",
    "ids": "155-166,168,170-224,226,228-239"
@@ -15,6 +20,11 @@
    "room": "Bed 4 Robe",
    "key": "j1122-235-esplanade-bed-4-robe",
    "ids": "326-336,338,340-393,395,397-409"
+  },
+  {
+   "room": "Master Ensuite",
+   "key": "j1122-235-esplanade-master-ensuite",
+   "ids": "1-33,43-63"
   },
   {
    "room": "Master WIR",
