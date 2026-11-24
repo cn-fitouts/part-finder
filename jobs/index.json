@@ -1,6 +1,94 @@
 {
  "jobs": [
   {
+   "key": "j1132-38a-langridge-street-middle-park-bed-1-ensuite",
+   "name": "J1132 - 38a Langridge Street, Middle Park - Bed 1 Ensuite",
+   "number": "J1132",
+   "room": "Bed 1 Ensuite",
+   "cabs": 9,
+   "parts": 35,
+   "updated": "2026-11-24 14:44",
+   "parent": "j1132-38a-langridge-street-middle-park",
+   "docs": [
+    {
+     "t": "assembly",
+     "name": "Assembly Sheets - J1132 - 38a Langridge St - Vanities",
+     "f": "docs/j1132-38a-langridge-street-middle-park/assembly-sheets-j1132-38a-langridge-st-vanities.pdf"
+    },
+    {
+     "t": "shop",
+     "name": "Final - J1132 - 38a Langridge St - Vanities",
+     "f": "docs/j1132-38a-langridge-street-middle-park/final-j1132-38a-langridge-st-vanities.pdf"
+    }
+   ]
+  },
+  {
+   "key": "j1132-38a-langridge-street-middle-park-bed-2-ensuite",
+   "name": "J1132 - 38a Langridge Street, Middle Park - Bed 2 Ensuite",
+   "number": "J1132",
+   "room": "Bed 2 Ensuite",
+   "cabs": 8,
+   "parts": 34,
+   "updated": "2026-11-24 14:44",
+   "parent": "j1132-38a-langridge-street-middle-park",
+   "docs": [
+    {
+     "t": "assembly",
+     "name": "Assembly Sheets - J1132 - 38a Langridge St - Vanities",
+     "f": "docs/j1132-38a-langridge-street-middle-park/assembly-sheets-j1132-38a-langridge-st-vanities.pdf"
+    },
+    {
+     "t": "shop",
+     "name": "Final - J1132 - 38a Langridge St - Vanities",
+     "f": "docs/j1132-38a-langridge-street-middle-park/final-j1132-38a-langridge-st-vanities.pdf"
+    }
+   ]
+  },
+  {
+   "key": "j1132-38a-langridge-street-middle-park-bed-3-ensuite",
+   "name": "J1132 - 38a Langridge Street, Middle Park - Bed 3 Ensuite",
+   "number": "J1132",
+   "room": "Bed 3 Ensuite",
+   "cabs": 9,
+   "parts": 35,
+   "updated": "2026-11-24 14:44",
+   "parent": "j1132-38a-langridge-street-middle-park",
+   "docs": [
+    {
+     "t": "assembly",
+     "name": "Assembly Sheets - J1132 - 38a Langridge St - Vanities",
+     "f": "docs/j1132-38a-langridge-street-middle-park/assembly-sheets-j1132-38a-langridge-st-vanities.pdf"
+    },
+    {
+     "t": "shop",
+     "name": "Final - J1132 - 38a Langridge St - Vanities",
+     "f": "docs/j1132-38a-langridge-street-middle-park/final-j1132-38a-langridge-st-vanities.pdf"
+    }
+   ]
+  },
+  {
+   "key": "j1132-38a-langridge-street-middle-park-master-ensuite",
+   "name": "J1132 - 38a Langridge Street, Middle Park - Master Ensuite",
+   "number": "J1132",
+   "room": "Master Ensuite",
+   "cabs": 9,
+   "parts": 49,
+   "updated": "2026-11-24 14:44",
+   "parent": "j1132-38a-langridge-street-middle-park",
+   "docs": [
+    {
+     "t": "assembly",
+     "name": "Assembly Sheets - J1132 - 38a Langridge St - Vanities",
+     "f": "docs/j1132-38a-langridge-street-middle-park/assembly-sheets-j1132-38a-langridge-st-vanities.pdf"
+    },
+    {
+     "t": "shop",
+     "name": "Final - J1132 - 38a Langridge St - Vanities",
+     "f": "docs/j1132-38a-langridge-street-middle-park/final-j1132-38a-langridge-st-vanities.pdf"
+    }
+   ]
+  },
+  {
    "key": "j1136-villiers",
    "name": "J1136 - Villiers",
    "number": "J1136",
